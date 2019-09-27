@@ -94,6 +94,18 @@ class ResNet(nn.Module):
         # Construct the stem module
         self.stem = stem_module(cfg)
 
+        # Set strides according to cfg.RPN.ANCHOR_STRIDE
+        # NOTE: this is only valid for ResNet__StagesTo4
+        if cfg.MODEL.RPN.ANCHOR_STRIDE[0] == 8:
+            strides = [1, 2, 1]
+        elif cfg.MODEL.RPN.ANCHOR_STRIDE[0] == 16:
+            strides = [1, 2, 2]
+        elif cfg.MODEL.RPN.ANCHOR_STRIDE[0] == 24:
+            strides = [1, 2, 3]
+        else:
+            print("ERROR: Invalid cfg.MODEL.RPN.ANCHOR_STRIDE setting:", cfg.MODEL.RPN.ANCHOR_STRIDE)
+            exit()
+
         # Constuct the specified ResNet stages
         num_groups = cfg.MODEL.RESNETS.NUM_GROUPS
         width_per_group = cfg.MODEL.RESNETS.WIDTH_PER_GROUP
@@ -102,7 +114,7 @@ class ResNet(nn.Module):
         stage2_out_channels = cfg.MODEL.RESNETS.RES2_OUT_CHANNELS
         self.stages = []
         self.return_features = {}
-        for stage_spec in stage_specs:
+        for stage_idx, stage_spec in enumerate(stage_specs):
             name = "layer" + str(stage_spec.index)
             stage2_relative_factor = 2 ** (stage_spec.index - 1)
             bottleneck_channels = stage2_bottleneck_channels * stage2_relative_factor
@@ -116,7 +128,8 @@ class ResNet(nn.Module):
                 stage_spec.block_count,
                 num_groups,
                 cfg.MODEL.RESNETS.STRIDE_IN_1X1,
-                first_stride=int(stage_spec.index > 1) + 1,
+                #first_stride=int(stage_spec.index > 1) + 1,
+                first_stride=strides[stage_idx],  # Choose stride based on ANCHOR_STRIDE
                 dcn_config={
                     "stage_with_dcn": stage_with_dcn,
                     "with_modulated_dcn": cfg.MODEL.RESNETS.WITH_MODULATED_DCN,
@@ -144,9 +157,12 @@ class ResNet(nn.Module):
 
     def forward(self, x):
         outputs = []
+        #print("input:", x.size())
         x = self.stem(x)
+        #print("stem:", x.size())
         for stage_name in self.stages:
             x = getattr(self, stage_name)(x)
+            #print(stage_name, x.size())
             if self.return_features[stage_name]:
                 outputs.append(x)
         return outputs

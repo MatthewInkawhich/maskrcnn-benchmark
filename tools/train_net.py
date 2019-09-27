@@ -35,6 +35,8 @@ except ImportError:
 
 def train(cfg, local_rank, distributed):
     model = build_detection_model(cfg)
+    #print(model)
+    #exit()
     device = torch.device(cfg.MODEL.DEVICE)
     model.to(device)
 
@@ -58,11 +60,18 @@ def train(cfg, local_rank, distributed):
 
     output_dir = cfg.OUTPUT_DIR
 
+
     save_to_disk = get_rank() == 0
+
+    # Initialize checkpointer object
     checkpointer = DetectronCheckpointer(
         cfg, model, optimizer, scheduler, output_dir, save_to_disk
     )
+
+    # Load pretrained base network weights
     extra_checkpoint_data = checkpointer.load(cfg.MODEL.WEIGHT)
+    #exit()
+
     arguments.update(extra_checkpoint_data)
 
     data_loader = make_data_loader(
