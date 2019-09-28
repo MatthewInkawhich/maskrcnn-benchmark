@@ -37,7 +37,6 @@ MODEL:
   DEVICE: cuda
   DONT_LOAD:
   - layer3
-  - layer4
   FBNET:
     ARCH: default
     ARCH_DEF: ''
@@ -70,6 +69,37 @@ MODEL:
   RESNETS:
     BACKBONE_OUT_CHANNELS: 1024
     DEFORMABLE_GROUPS: 1
+    MIDDLE_KERNEL_SIZES:
+    - - 3
+      - 3
+      - 3
+    - - 3
+      - 3
+      - 3
+      - 3
+    - - 3
+      - 3
+      - 3
+      - 3
+      - 3
+      - 3
+      - 3
+      - 3
+      - 1
+      - 1
+      - 1
+      - 1
+      - 1
+      - 1
+      - 1
+      - 1
+      - 1
+      - 1
+      - 1
+      - 1
+      - 1
+      - 1
+      - 1
     NUM_GROUPS: 1
     RES2_OUT_CHANNELS: 256
     RES5_DILATION: 1

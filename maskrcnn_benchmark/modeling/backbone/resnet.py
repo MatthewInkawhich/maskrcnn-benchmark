@@ -120,6 +120,13 @@ class ResNet(nn.Module):
             bottleneck_channels = stage2_bottleneck_channels * stage2_relative_factor
             out_channels = stage2_out_channels * stage2_relative_factor
             stage_with_dcn = cfg.MODEL.RESNETS.STAGE_WITH_DCN[stage_spec.index -1]
+
+            if cfg.MODEL.RESNETS.MIDDLE_KERNEL_SIZES:
+                middle_ks = cfg.MODEL.RESNETS.MIDDLE_KERNEL_SIZES[stage_idx]
+            else:
+                middle_ks = [3 for _ in range(stage_spec.block_count)]
+            assert(len(middle_ks) == stage_spec.block_count), "Length of middle_ks does not match block count at stage: {}".format(stage_idx)
+
             module = _make_stage(
                 transformation_module,
                 in_channels,
@@ -134,7 +141,8 @@ class ResNet(nn.Module):
                     "stage_with_dcn": stage_with_dcn,
                     "with_modulated_dcn": cfg.MODEL.RESNETS.WITH_MODULATED_DCN,
                     "deformable_groups": cfg.MODEL.RESNETS.DEFORMABLE_GROUPS,
-                }
+                },
+                middle_ks=middle_ks
             )
             in_channels = out_channels
             self.add_module(name, module)
@@ -230,11 +238,16 @@ def _make_stage(
     stride_in_1x1,
     first_stride,
     dilation=1,
-    dcn_config={}
+    dcn_config={},
+    middle_ks=[]
 ):
+    # Set default middle kernel sizes to all 3
+    if not middle_ks:
+        middle_ks = [3 for _ in range(block_count)]
+
     blocks = []
     stride = first_stride
-    for _ in range(block_count):
+    for i in range(block_count):
         blocks.append(
             transformation_module(
                 in_channels,
@@ -244,7 +257,8 @@ def _make_stage(
                 stride_in_1x1,
                 stride,
                 dilation=dilation,
-                dcn_config=dcn_config
+                dcn_config=dcn_config,
+                middle_k=middle_ks[i]
             )
         )
         stride = 1
@@ -263,7 +277,8 @@ class Bottleneck(nn.Module):
         stride,
         dilation,
         norm_func,
-        dcn_config
+        dcn_config,
+        middle_k
     ):
         super(Bottleneck, self).__init__()
 
@@ -307,7 +322,8 @@ class Bottleneck(nn.Module):
                 bottleneck_channels,
                 bottleneck_channels,
                 with_modulated_dcn=with_modulated_dcn,
-                kernel_size=3,
+                #kernel_size=3,
+                kernel_size=middle_k,
                 stride=stride_3x3,
                 groups=num_groups,
                 dilation=dilation,
@@ -318,7 +334,8 @@ class Bottleneck(nn.Module):
             self.conv2 = Conv2d(
                 bottleneck_channels,
                 bottleneck_channels,
-                kernel_size=3,
+                #kernel_size=3,
+                kernel_size=middle_k,
                 stride=stride_3x3,
                 padding=dilation,
                 bias=False,
@@ -392,7 +409,8 @@ class BottleneckWithFixedBatchNorm(Bottleneck):
         stride_in_1x1=True,
         stride=1,
         dilation=1,
-        dcn_config={}
+        dcn_config={},
+        middle_k=3
     ):
         super(BottleneckWithFixedBatchNorm, self).__init__(
             in_channels=in_channels,
@@ -403,7 +421,8 @@ class BottleneckWithFixedBatchNorm(Bottleneck):
             stride=stride,
             dilation=dilation,
             norm_func=FrozenBatchNorm2d,
-            dcn_config=dcn_config
+            dcn_config=dcn_config,
+            middle_k=middle_k
         )
 
 
@@ -424,7 +443,8 @@ class BottleneckWithGN(Bottleneck):
         stride_in_1x1=True,
         stride=1,
         dilation=1,
-        dcn_config={}
+        dcn_config={},
+        middle_k=3
     ):
         super(BottleneckWithGN, self).__init__(
             in_channels=in_channels,
@@ -435,7 +455,8 @@ class BottleneckWithGN(Bottleneck):
             stride=stride,
             dilation=dilation,
             norm_func=group_norm,
-            dcn_config=dcn_config
+            dcn_config=dcn_config,
+            middle_k=middle_k
         )
 
 
