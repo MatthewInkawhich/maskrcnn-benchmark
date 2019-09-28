@@ -3,6 +3,7 @@ MODEL:
   BACKBONE:
     CONV_BODY: "R-101-C4"
   WEIGHT: "catalog://ImageNetPretrained/MSRA/R-101"
+  DONT_LOAD: ["layer3"]
   RPN:
     USE_FPN: False
     ANCHOR_SIZES: (32, 64, 128, 256, 512)

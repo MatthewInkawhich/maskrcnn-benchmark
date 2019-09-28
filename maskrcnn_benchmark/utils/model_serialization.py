@@ -7,7 +7,7 @@ import torch
 from maskrcnn_benchmark.utils.imports import import_file
 
 
-def align_and_update_state_dicts(model_state_dict, loaded_state_dict):
+def align_and_update_state_dicts(model_state_dict, loaded_state_dict, dont_load):
     """
     Strategy: suppose that the models that we will create will have prefixes appended
     to each of its keys, for example due to an extra level of nesting that the original
@@ -46,16 +46,25 @@ def align_and_update_state_dicts(model_state_dict, loaded_state_dict):
             continue
         key = current_keys[idx_new]
         key_old = loaded_keys[idx_old]
-        model_state_dict[key] = loaded_state_dict[key_old]
-        logger.info(
-            log_str_template.format(
-                key,
-                max_size,
-                key_old,
-                max_size_loaded,
-                tuple(loaded_state_dict[key_old].shape),
+        
+        # Only load keys that do not contain the dont_load strings
+        good_to_load = True
+        for dl_string in dont_load:
+            if dl_string in key:
+                good_to_load = False
+                break
+
+        if good_to_load:
+            model_state_dict[key] = loaded_state_dict[key_old]
+            logger.info(
+                log_str_template.format(
+                    key,
+                    max_size,
+                    key_old,
+                    max_size_loaded,
+                    tuple(loaded_state_dict[key_old].shape),
+                )
             )
-        )
 
 
 def strip_prefix_if_present(state_dict, prefix):
@@ -68,13 +77,14 @@ def strip_prefix_if_present(state_dict, prefix):
     return stripped_state_dict
 
 
-def load_state_dict(model, loaded_state_dict):
+def load_state_dict(model, loaded_state_dict, dont_load=[]):
+    # Create a record of the default model state dict so we can use strict loading later
     model_state_dict = model.state_dict()
     # if the state_dict comes from a model that was wrapped in a
     # DataParallel or DistributedDataParallel during serialization,
     # remove the "module" prefix before performing the matching
     loaded_state_dict = strip_prefix_if_present(loaded_state_dict, prefix="module.")
-    align_and_update_state_dicts(model_state_dict, loaded_state_dict)
+    align_and_update_state_dicts(model_state_dict, loaded_state_dict, dont_load)
 
     # use strict loading
     model.load_state_dict(model_state_dict)

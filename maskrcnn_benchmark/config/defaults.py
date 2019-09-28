@@ -34,6 +34,9 @@ _C.MODEL.CLS_AGNOSTIC_BBOX_REG = False
 # path
 _C.MODEL.WEIGHT = ""
 
+# Optionally provide strings that are present in param names that we DON'T
+# want to load
+_C.MODEL.DONT_LOAD = []
 
 # -----------------------------------------------------------------------------
 # INPUT

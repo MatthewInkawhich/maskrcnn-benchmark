@@ -35,8 +35,8 @@ except ImportError:
 
 def train(cfg, local_rank, distributed):
     model = build_detection_model(cfg)
-    #print(model)
-    #exit()
+    print(model)
+    exit()
     device = torch.device(cfg.MODEL.DEVICE)
     model.to(device)
 
@@ -69,8 +69,8 @@ def train(cfg, local_rank, distributed):
     )
 
     # Load pretrained base network weights
-    extra_checkpoint_data = checkpointer.load(cfg.MODEL.WEIGHT)
-    #exit()
+    extra_checkpoint_data = checkpointer.load(cfg.MODEL.WEIGHT, dont_load=cfg.MODEL.DONT_LOAD)
+    exit()
 
     arguments.update(extra_checkpoint_data)
 
