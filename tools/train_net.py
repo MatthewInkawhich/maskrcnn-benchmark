@@ -70,7 +70,7 @@ def train(cfg, local_rank, distributed):
 
     # Load pretrained base network weights
     extra_checkpoint_data = checkpointer.load(cfg.MODEL.WEIGHT, dont_load=cfg.MODEL.DONT_LOAD)
-    exit()
+    #exit()
 
     arguments.update(extra_checkpoint_data)
 

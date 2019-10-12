@@ -2,6 +2,7 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
+import matplotlib.pyplot as plt
 
 from maskrcnn_benchmark.modeling import registry
 from maskrcnn_benchmark.modeling.box_coder import BoxCoder
@@ -154,6 +155,16 @@ class RPNModule(torch.nn.Module):
         """
         objectness, rpn_box_regression = self.head(features)
         anchors = self.anchor_generator(images, features)
+
+        #print("images:", images)
+        #print("images.tensors:", images.tensors.shape, images.tensors.min(), images.tensors.max())
+        #print("\n\nanchors:", anchors)
+        #print(anchors[0][0].bbox)
+        #im = images.tensors[0].permute(1, 2, 0).cpu()
+        #normalized_im = (im - im.min()) / (im.max() - im.min())
+        #plt.imshow(normalized_im[:,:,[2,1,0]])
+        #plt.show()
+        #exit()
 
         if self.training:
             return self._forward_train(anchors, objectness, rpn_box_regression, targets)

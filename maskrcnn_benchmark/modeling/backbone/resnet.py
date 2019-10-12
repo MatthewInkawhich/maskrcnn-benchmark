@@ -127,6 +127,10 @@ class ResNet(nn.Module):
                 middle_ks = [3 for _ in range(stage_spec.block_count)]
             assert(len(middle_ks) == stage_spec.block_count), "Length of middle_ks does not match block count at stage: {}".format(stage_idx)
 
+            use_unfixed_bn = False
+            if name in cfg.MODEL.DONT_LOAD:
+                use_unfixed_bn = True
+
             module = _make_stage(
                 transformation_module,
                 in_channels,
@@ -142,7 +146,8 @@ class ResNet(nn.Module):
                     "with_modulated_dcn": cfg.MODEL.RESNETS.WITH_MODULATED_DCN,
                     "deformable_groups": cfg.MODEL.RESNETS.DEFORMABLE_GROUPS,
                 },
-                middle_ks=middle_ks
+                middle_ks=middle_ks,
+                use_unfixed_bn=use_unfixed_bn
             )
             in_channels = out_channels
             self.add_module(name, module)
@@ -179,6 +184,7 @@ class ResNet(nn.Module):
 class ResNetHead(nn.Module):
     def __init__(
         self,
+        cfg,
         block_module,
         stages,
         num_groups=1,
@@ -203,8 +209,14 @@ class ResNetHead(nn.Module):
         stride = stride_init
         for stage in stages:
             name = "layer" + str(stage.index)
+
+            use_unfixed_bn = False
+            if name in cfg.MODEL.DONT_LOAD:
+                use_unfixed_bn = True
+
             if not stride:
                 stride = int(stage.index > 1) + 1
+
             module = _make_stage(
                 block_module,
                 in_channels,
@@ -215,7 +227,8 @@ class ResNetHead(nn.Module):
                 stride_in_1x1,
                 first_stride=stride,
                 dilation=dilation,
-                dcn_config=dcn_config
+                dcn_config=dcn_config,
+                use_unfixed_bn=use_unfixed_bn
             )
             stride = None
             self.add_module(name, module)
@@ -239,7 +252,8 @@ def _make_stage(
     first_stride,
     dilation=1,
     dcn_config={},
-    middle_ks=[]
+    middle_ks=[],
+    use_unfixed_bn=False
 ):
     # Set default middle kernel sizes to all 3
     if not middle_ks:
@@ -258,7 +272,8 @@ def _make_stage(
                 stride,
                 dilation=dilation,
                 dcn_config=dcn_config,
-                middle_k=middle_ks[i]
+                middle_k=middle_ks[i],
+                use_unfixed_bn=use_unfixed_bn
             )
         )
         stride = 1
@@ -278,7 +293,8 @@ class Bottleneck(nn.Module):
         dilation,
         norm_func,
         dcn_config,
-        middle_k
+        middle_k,
+        use_unfixed_bn
     ):
         super(Bottleneck, self).__init__()
 
@@ -312,7 +328,12 @@ class Bottleneck(nn.Module):
             stride=stride_1x1,
             bias=False,
         )
-        self.bn1 = norm_func(bottleneck_channels)
+
+        if use_unfixed_bn:
+            self.bn1 = nn.BatchNorm2d(bottleneck_channels)
+        else:
+            self.bn1 = norm_func(bottleneck_channels)
+        
         # TODO: specify init for the above
         with_dcn = dcn_config.get("stage_with_dcn", False)
         if with_dcn:
@@ -331,25 +352,37 @@ class Bottleneck(nn.Module):
                 bias=False
             )
         else:
+            padding = dilation
+            # If our middle kernel size is 1, we don't need padding
+            if middle_k == 1:
+                padding = 0
             self.conv2 = Conv2d(
                 bottleneck_channels,
                 bottleneck_channels,
                 #kernel_size=3,
                 kernel_size=middle_k,
                 stride=stride_3x3,
-                padding=dilation,
+                #padding=dilation,
+                padding=padding,
                 bias=False,
                 groups=num_groups,
                 dilation=dilation
             )
             nn.init.kaiming_uniform_(self.conv2.weight, a=1)
 
-        self.bn2 = norm_func(bottleneck_channels)
+        if use_unfixed_bn:
+            self.bn2 = nn.BatchNorm2d(bottleneck_channels)
+        else:
+            self.bn2 = norm_func(bottleneck_channels)
 
         self.conv3 = Conv2d(
             bottleneck_channels, out_channels, kernel_size=1, bias=False
         )
-        self.bn3 = norm_func(out_channels)
+
+        if use_unfixed_bn:
+            self.bn3 = nn.BatchNorm2d(out_channels)
+        else:
+            self.bn3 = norm_func(out_channels)
 
         for l in [self.conv1, self.conv3,]:
             nn.init.kaiming_uniform_(l.weight, a=1)
@@ -410,7 +443,8 @@ class BottleneckWithFixedBatchNorm(Bottleneck):
         stride=1,
         dilation=1,
         dcn_config={},
-        middle_k=3
+        middle_k=3,
+        use_unfixed_bn=False
     ):
         super(BottleneckWithFixedBatchNorm, self).__init__(
             in_channels=in_channels,
@@ -422,7 +456,8 @@ class BottleneckWithFixedBatchNorm(Bottleneck):
             dilation=dilation,
             norm_func=FrozenBatchNorm2d,
             dcn_config=dcn_config,
-            middle_k=middle_k
+            middle_k=middle_k,
+            use_unfixed_bn=use_unfixed_bn
         )
 
 
@@ -444,7 +479,8 @@ class BottleneckWithGN(Bottleneck):
         stride=1,
         dilation=1,
         dcn_config={},
-        middle_k=3
+        middle_k=3,
+        use_unfixed_bn=False
     ):
         super(BottleneckWithGN, self).__init__(
             in_channels=in_channels,
@@ -456,7 +492,8 @@ class BottleneckWithGN(Bottleneck):
             dilation=dilation,
             norm_func=group_norm,
             dcn_config=dcn_config,
-            middle_k=middle_k
+            middle_k=middle_k,
+            use_unfixed_bn=use_unfixed_bn
         )
 
 
