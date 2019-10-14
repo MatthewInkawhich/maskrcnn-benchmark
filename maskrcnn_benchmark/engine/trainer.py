@@ -83,6 +83,10 @@ def do_train(
         optimizer.step()
         scheduler.step()
 
+        # Recommended fix to stop growing memory
+        # https://github.com/facebookresearch/maskrcnn-benchmark/issues/884#issuecomment-508618338
+        torch.cuda.empty_cache()
+
         batch_time = time.time() - end
         end = time.time()
         meters.update(time=batch_time, data=data_time)

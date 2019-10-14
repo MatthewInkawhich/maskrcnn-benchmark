@@ -7,6 +7,22 @@ import os
 class DatasetCatalog(object):
     DATA_DIR = "datasets"
     DATASETS = {
+        "xView_full_train_mini": {
+            "img_dir": "xView-coco-600_mini/train_images",
+            "ann_file": "xView-coco-600_mini/annotations/train_full.json"
+        },
+        "xView_full_val_mini": {
+            "img_dir": "xView-coco-600_mini/val_images",
+            "ann_file": "xView-coco-600_mini/annotations/val_full.json"
+        },
+        "xView_simple_train_mini": {
+            "img_dir": "xView-coco-600_mini/train_images",
+            "ann_file": "xView-coco-600_mini/annotations/train_simple.json"
+        },
+        "xView_simple_val_mini": {
+            "img_dir": "xView-coco-600_mini/val_images",
+            "ann_file": "xView-coco-600_mini/annotations/val_simple.json"
+        },
         "xView_full_train": {
             "img_dir": "xView-coco-600/train_images",
             "ann_file": "xView-coco-600/annotations/train_full.json"
@@ -14,6 +30,14 @@ class DatasetCatalog(object):
         "xView_full_val": {
             "img_dir": "xView-coco-600/val_images",
             "ann_file": "xView-coco-600/annotations/val_full.json"
+        },
+        "xView_simple_train": {
+            "img_dir": "xView-coco-600/train_images",
+            "ann_file": "xView-coco-600/annotations/train_simple.json"
+        },
+        "xView_simple_val": {
+            "img_dir": "xView-coco-600/val_images",
+            "ann_file": "xView-coco-600/annotations/val_simple.json"
         },
         "coco_2017_train": {
             "img_dir": "coco/train2017",

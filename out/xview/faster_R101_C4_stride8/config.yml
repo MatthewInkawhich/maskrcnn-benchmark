@@ -5,9 +5,9 @@ DATALOADER:
   SIZE_DIVISIBILITY: 0
 DATASETS:
   TEST:
-  - xView_simple_val_mini
+  - xView_full_val
   TRAIN:
-  - xView_simple_train_mini
+  - xView_full_train
 DTYPE: float32
 INPUT:
   BRIGHTNESS: 0.0
@@ -122,12 +122,12 @@ MODEL:
     DILATION: 1
     FEATURE_EXTRACTOR: ResNet50Conv5ROIFeatureExtractor
     MLP_HEAD_DIM: 1024
-    NUM_CLASSES: 8
+    NUM_CLASSES: 61
     NUM_STACKED_CONVS: 4
     POOLER_RESOLUTION: 14
     POOLER_SAMPLING_RATIO: 0
     POOLER_SCALES:
-    - 0.0625
+    - 0.125
     PREDICTOR: FastRCNNPredictor
     USE_GN: false
   ROI_HEADS:
@@ -192,7 +192,7 @@ MODEL:
     - 256
     - 512
     ANCHOR_STRIDE:
-    - 16
+    - 8
     ASPECT_RATIOS:
     - 0.5
     - 1.0
@@ -215,19 +215,19 @@ MODEL:
     USE_FPN: false
   RPN_ONLY: false
   WEIGHT: catalog://ImageNetPretrained/MSRA/R-101
-OUTPUT_DIR: ./out/xview/test_1x
+OUTPUT_DIR: ./out/xview/faster_R101_C4_stride8
 PATHS_CATALOG: /hpcdata/inkawhmj/maskrcnn-benchmark/maskrcnn_benchmark/config/paths_catalog.py
 SOLVER:
-  BASE_LR: 0.0025
+  BASE_LR: 0.01
   BIAS_LR_FACTOR: 2
-  CHECKPOINT_PERIOD: 100
+  CHECKPOINT_PERIOD: 2500
   GAMMA: 0.1
-  IMS_PER_BATCH: 2
-  MAX_ITER: 720000
+  IMS_PER_BATCH: 8
+  MAX_ITER: 180000
   MOMENTUM: 0.9
   STEPS:
-  - 480000
-  - 640000
+  - 120000
+  - 160000
   WARMUP_FACTOR: 0.3333333333333333
   WARMUP_ITERS: 500
   WARMUP_METHOD: linear
@@ -243,4 +243,4 @@ TEST:
   DETECTIONS_PER_IMG: 100
   EXPECTED_RESULTS: []
   EXPECTED_RESULTS_SIGMA_TOL: 4
-  IMS_PER_BATCH: 1
+  IMS_PER_BATCH: 8

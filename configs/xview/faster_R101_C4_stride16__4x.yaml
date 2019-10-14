@@ -4,23 +4,22 @@ MODEL:
     CONV_BODY: "R-101-C4"
   WEIGHT: "catalog://ImageNetPretrained/MSRA/R-101"
 
-  DONT_LOAD: ["layer3", "layer4"]
-
   RPN:
     USE_FPN: False
-    ANCHOR_SIZES: (32, 64, 128, 256, 512)
+    ANCHOR_SIZES: (16, 32, 64, 128, 256, 512)
     #ANCHOR_STRIDE: (24,)
     ANCHOR_STRIDE: (16,)
     #ANCHOR_STRIDE: (8,)
     ASPECT_RATIOS: (0.5, 1.0, 2.0)
     BATCH_SIZE_PER_IMAGE: 256
-    PRE_NMS_TOP_N_TRAIN: 12000
-    PRE_NMS_TOP_N_TEST: 6000
-    POST_NMS_TOP_N_TRAIN: 2000
-    POST_NMS_TOP_N_TEST: 1000
+    PRE_NMS_TOP_N_TRAIN: 40000
+    PRE_NMS_TOP_N_TEST: 20000
+    POST_NMS_TOP_N_TRAIN: 8000
+    POST_NMS_TOP_N_TEST: 4000
   ROI_HEADS:
     USE_FPN: False
     BATCH_SIZE_PER_IMAGE: 512
+    DETECTIONS_PER_IMG: 1800
   ROI_BOX_HEAD:
     FEATURE_EXTRACTOR: "ResNet50Conv5ROIFeatureExtractor"
     PREDICTOR: "FastRCNNPredictor"
@@ -28,21 +27,31 @@ MODEL:
     #POOLER_SCALES: (0.0416667,)  # 1 / 24
     POOLER_SCALES: (0.0625,)     # 1 / 16
     #POOLER_SCALES: (0.125,)      # 1 / 8
-    NUM_CLASSES: 81
+    NUM_CLASSES: 61
+    #NUM_CLASSES: 8
 
+INPUT:
+  MIN_SIZE_TRAIN: (600,)
+  MAX_SIZE_TRAIN: 600
+  MIN_SIZE_TEST: 600
+  MAX_SIZE_TEST: 600
+  
 DATASETS:
-  TRAIN: ("coco_2017_train",)
-  TEST: ("coco_2017_val",)
+  TRAIN: ("xView_full_train",)
+  TEST: ("xView_full_val",)
+  #TRAIN: ("xView_simple_train",)
+  #TEST: ("xView_simple_val",)
 
 SOLVER:
   BASE_LR: 0.01
   WEIGHT_DECAY: 0.0001
   STEPS: (120000, 160000)
   MAX_ITER: 180000
+  #MAX_ITER: 100
   IMS_PER_BATCH: 8
   CHECKPOINT_PERIOD: 2500
 
 TEST:
   IMS_PER_BATCH: 8
 
-OUTPUT_DIR: "./out/faster_R101_C4_stride16_nopretrain"
+OUTPUT_DIR: "./out/xview/faster_R101_C4_stride16"

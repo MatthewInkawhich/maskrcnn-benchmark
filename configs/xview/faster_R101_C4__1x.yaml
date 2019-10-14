@@ -25,7 +25,8 @@ MODEL:
     POOLER_RESOLUTION: 14
     POOLER_SCALES: (0.0625,)  # 1 / 16
     #POOLER_SCALES: (0.125,)  # 1 / 8
-    NUM_CLASSES: 61
+    #NUM_CLASSES: 61
+    NUM_CLASSES: 8
   RESNETS:
       MIDDLE_KERNEL_SIZES: []
       # MIDDLE_KERNEL_SIZES: [[3,3,3],[3,3,3,3],[3,3,3,3,3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]]
@@ -38,8 +39,10 @@ INPUT:
   
 
 DATASETS:
-  TRAIN: ("xView_full_train",)
-  TEST: ("xView_full_val",)
+    #TRAIN: ("xView_full_train_mini",)
+    #TEST: ("xView_full_val_mini",)
+  TRAIN: ("xView_simple_train_mini",)
+  TEST: ("xView_simple_val_mini",)
 
 SOLVER:
   BASE_LR: 0.0025
