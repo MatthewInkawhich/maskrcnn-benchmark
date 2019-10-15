@@ -8,6 +8,7 @@ from tqdm import tqdm
 from maskrcnn_benchmark.modeling.roi_heads.mask_head.inference import Masker
 from maskrcnn_benchmark.structures.bounding_box import BoxList
 from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
+from maskrcnn_benchmark.data import datasets
 
 
 def do_coco_evaluation(
@@ -50,6 +51,13 @@ def do_coco_evaluation(
         coco_results['keypoints'] = prepare_for_coco_keypoint(predictions, dataset)
 
     results = COCOResults(*iou_types)
+
+    # If we are evaluating xView, we need to change maxDets
+    # First, we set a flag
+    xview = False
+    if isinstance(dataset, datasets.xViewDataset):
+        xview = True
+
     logger.info("Evaluating predictions")
     for iou_type in iou_types:
         with tempfile.NamedTemporaryFile() as f:
@@ -57,7 +65,7 @@ def do_coco_evaluation(
             if output_folder:
                 file_path = os.path.join(output_folder, iou_type + ".json")
             res = evaluate_predictions_on_coco(
-                dataset.coco, coco_results[iou_type], file_path, iou_type
+                dataset.coco, coco_results[iou_type], file_path, iou_type, xview
             )
             results.update(res)
     logger.info(results)
@@ -303,7 +311,7 @@ def evaluate_box_proposals(
 
 
 def evaluate_predictions_on_coco(
-    coco_gt, coco_results, json_result_file, iou_type="bbox"
+    coco_gt, coco_results, json_result_file, iou_type="bbox", xview=False
 ):
     import json
 
@@ -317,6 +325,10 @@ def evaluate_predictions_on_coco(
 
     # coco_dt = coco_gt.loadRes(coco_results)
     coco_eval = COCOeval(coco_gt, coco_dt, iou_type)
+
+    if xview:
+        coco_eval.params.maxDets = [10, 100, 1000000]
+
     coco_eval.evaluate()
     coco_eval.accumulate()
     coco_eval.summarize()

@@ -44,6 +44,7 @@ def do_train(
     checkpointer,
     device,
     checkpoint_period,
+    empty_cache,
     arguments,
 ):
     logger = logging.getLogger("maskrcnn_benchmark.trainer")
@@ -85,7 +86,8 @@ def do_train(
 
         # Recommended fix to stop growing memory
         # https://github.com/facebookresearch/maskrcnn-benchmark/issues/884#issuecomment-508618338
-        torch.cuda.empty_cache()
+        if empty_cache:
+            torch.cuda.empty_cache()
 
         batch_time = time.time() - end
         end = time.time()

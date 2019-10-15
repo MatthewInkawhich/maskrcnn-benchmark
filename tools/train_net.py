@@ -33,7 +33,7 @@ except ImportError:
     raise ImportError('Use APEX for multi-precision via apex.amp')
 
 
-def train(cfg, local_rank, distributed):
+def train(cfg, local_rank, distributed, empty_cache=False):
     model = build_detection_model(cfg)
     print(model)
     #exit()
@@ -91,6 +91,7 @@ def train(cfg, local_rank, distributed):
         checkpointer,
         device,
         checkpoint_period,
+        empty_cache,
         arguments,
     )
 
@@ -146,6 +147,12 @@ def main():
         action="store_true",
     )
     parser.add_argument(
+        "--empty-cache",
+        dest="empty_cache",
+        help="To empty cache during training",
+        action="store_true",
+    )
+    parser.add_argument(
         "opts",
         help="Modify config options using the command-line",
         default=None,
@@ -190,7 +197,7 @@ def main():
     # save overloaded model config in the output directory
     save_config(cfg, output_config_path)
 
-    model = train(cfg, args.local_rank, args.distributed)
+    model = train(cfg, args.local_rank, args.distributed, empty_cache=args.empty_cache)
 
     if not args.skip_test:
         run_test(cfg, model, args.distributed)
