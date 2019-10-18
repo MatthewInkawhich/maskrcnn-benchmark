@@ -96,7 +96,9 @@ class ResNet(nn.Module):
 
         # Set strides according to cfg.RPN.ANCHOR_STRIDE
         # NOTE: this is only valid for ResNet__StagesTo4
-        if cfg.MODEL.RPN.ANCHOR_STRIDE[0] == 8:
+        if cfg.MODEL.RPN.ANCHOR_STRIDE[0] == 4:
+            strides = [1, 1, 1]
+        elif cfg.MODEL.RPN.ANCHOR_STRIDE[0] == 8:
             strides = [1, 2, 1]
         elif cfg.MODEL.RPN.ANCHOR_STRIDE[0] == 16:
             strides = [1, 2, 2]

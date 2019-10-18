@@ -35,6 +35,7 @@ INPUT:
   MAX_SIZE_TRAIN: 600
   MIN_SIZE_TEST: 600
   MAX_SIZE_TEST: 600
+  VERTICAL_FLIP_PROB_TRAIN: 0.5
   
 DATASETS:
   TRAIN: ("xView_full_train",)
@@ -43,7 +44,7 @@ DATASETS:
   #TEST: ("xView_simple_val",)
 
 SOLVER:
-  BASE_LR: 0.01
+  BASE_LR: 0.001
   WEIGHT_DECAY: 0.0001
   STEPS: (60000, 100000)
   MAX_ITER: 120000
@@ -53,4 +54,4 @@ SOLVER:
 TEST:
   IMS_PER_BATCH: 8
 
-OUTPUT_DIR: "./out/xview/faster_R101_C4_stride8"
+OUTPUT_DIR: "./out/xview/faster_R101_C4_A"

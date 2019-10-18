@@ -72,8 +72,8 @@ def get_gt_labels(annotation_path, image_path):
             break
     # Check to see if we got a valid image_id
     if image_id == -1:
-        print("Error: Failed to find an image_id matching the file given.")
-        exit()
+        print("Failed to find an image_id matching the file given!")
+        return [], []
     # Now gather all box annotations in image image_id
     gt_boxes = []
     gt_labels = []
@@ -93,19 +93,23 @@ def get_gt_labels(annotation_path, image_path):
 ##################################
 def main():
     # Configure
-    XVIEW = False
-    PLOT_GT = True
+    XVIEW = True
+    PLOT_GT = False
     PLOT_PREDICTIONS = True
+    TEXT = False
 
     # Set paths
     if XVIEW:
-        CONFIG_FILE_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'configs', 'xview', 'faster_R101_C4_stride16__4x.yaml')
-        OUT_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'out', 'xview', 'faster_R101_C4_stride16')
-        CHECKPOINT_PATH = os.path.join(OUT_PATH, 'model_final.pth')
+        #CONFIG_FILE_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'configs', 'xview', 'faster_R101_C4_stride8__4x.yaml')
+        #OUT_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'out', 'xview', 'faster_R101_C4_stride8')
+        CONFIG_FILE_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'configs', 'xview', 'faster_R101_C4_stride24__4x.yaml')
+        OUT_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'out', 'xview', 'faster_R101_C4_stride24')
+        CHECKPOINT_PATH = os.path.join(OUT_PATH, 'model_0140000.pth')
         LABEL_PATH = os.path.join(OUT_PATH, 'labels.json')
         DATA_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'datasets', 'xView-coco-600')
         ANNOTATION_PATH = os.path.join(DATA_PATH, 'annotations', 'val_full.json')
-        IMAGE_PATH = os.path.join(DATA_PATH, 'val_images', 'img_97_14_rot0.jpg')
+        #IMAGE_PATH = os.path.join(DATA_PATH, 'val_images', 'img_97_14_rot0.jpg')
+        IMAGE_PATH = os.path.join(DATA_PATH, 'val_images', 'img_322_30_rot0.jpg')
         DRAW_THRESH = 0.6
     else: # COCO
         CONFIG_FILE_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'configs', 'coco', 'faster_R101_C4_vanilla__4x.yaml')
@@ -130,7 +134,7 @@ def main():
     # Read and draw GT boxes
     if PLOT_GT:
         gt_boxes, gt_labels = get_gt_labels(ANNOTATION_PATH, IMAGE_PATH)
-        gt_str_labels = generate_str_labels(gt_labels, orig_to_str_map)
+        gt_str_labels = generate_str_labels(gt_labels, orig_to_str_map) if TEXT else []
         draw_boxes(draw=draw, boxes=gt_boxes, labels=gt_str_labels, box_color=(0,0,255), text_color=(0,0,255))
 
     # Generate and draw predictions
@@ -182,7 +186,7 @@ def main():
         predicted_orig_labels = [contiguous_to_orig_map[int(x)] for x in predicted_labels]
 
         # Create str_label list to plot
-        str_labels = generate_str_labels(predicted_orig_labels, orig_to_str_map)
+        str_labels = generate_str_labels(predicted_orig_labels, orig_to_str_map) if TEXT else []
 
         # Draw prediction boxes
         draw_boxes(draw=draw, boxes=predicted_boxes, labels=str_labels, box_color=(255,130,0), text_color=(180,255,0))

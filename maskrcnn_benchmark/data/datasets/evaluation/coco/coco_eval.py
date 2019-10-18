@@ -4,6 +4,7 @@ import os
 import torch
 from collections import OrderedDict
 from tqdm import tqdm
+import numpy as np
 
 from maskrcnn_benchmark.modeling.roi_heads.mask_head.inference import Masker
 from maskrcnn_benchmark.structures.bounding_box import BoxList
@@ -328,6 +329,7 @@ def evaluate_predictions_on_coco(
 
     if xview:
         coco_eval.params.maxDets = [10, 100, 1000000]
+        coco_eval.params.iouThrs = np.array([0.5])
 
     coco_eval.evaluate()
     coco_eval.accumulate()

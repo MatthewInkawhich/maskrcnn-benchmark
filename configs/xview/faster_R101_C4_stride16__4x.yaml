@@ -39,19 +39,21 @@ INPUT:
 DATASETS:
   TRAIN: ("xView_full_train",)
   TEST: ("xView_full_val",)
+  #TEST: ("xView_full_val_mini",)
   #TRAIN: ("xView_simple_train",)
   #TEST: ("xView_simple_val",)
 
 SOLVER:
   BASE_LR: 0.01
   WEIGHT_DECAY: 0.0001
-  STEPS: (120000, 160000)
-  MAX_ITER: 180000
-  #MAX_ITER: 100
+  #STEPS: (120000, 160000)
+  #MAX_ITER: 180000
+  STEPS: (60000, 100000)
+  MAX_ITER: 120000
   IMS_PER_BATCH: 8
   CHECKPOINT_PERIOD: 2500
 
 TEST:
-  IMS_PER_BATCH: 8
+    IMS_PER_BATCH: 8
 
 OUTPUT_DIR: "./out/xview/faster_R101_C4_stride16"
