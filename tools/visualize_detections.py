@@ -100,11 +100,11 @@ def main():
 
     # Set paths
     if XVIEW:
-        #CONFIG_FILE_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'configs', 'xview', 'faster_R101_C4_stride8__4x.yaml')
-        #OUT_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'out', 'xview', 'faster_R101_C4_stride8')
-        CONFIG_FILE_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'configs', 'xview', 'faster_R101_C4_stride24__4x.yaml')
-        OUT_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'out', 'xview', 'faster_R101_C4_stride24')
-        CHECKPOINT_PATH = os.path.join(OUT_PATH, 'model_0140000.pth')
+        CONFIG_FILE_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'configs', 'xview', 'faster_R101_C4_stride4__4x.yaml')
+        OUT_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'out', 'xview', 'faster_R101_C4_stride4')
+        #CONFIG_FILE_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'configs', 'xview', 'faster_R101_C4_stride24__4x.yaml')
+        #OUT_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'out', 'xview', 'faster_R101_C4_stride24')
+        CHECKPOINT_PATH = os.path.join(OUT_PATH, 'model_final.pth')
         LABEL_PATH = os.path.join(OUT_PATH, 'labels.json')
         DATA_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'datasets', 'xView-coco-600')
         ANNOTATION_PATH = os.path.join(DATA_PATH, 'annotations', 'val_full.json')

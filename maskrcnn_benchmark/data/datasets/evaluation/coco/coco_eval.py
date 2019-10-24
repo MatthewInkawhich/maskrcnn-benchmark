@@ -328,12 +328,14 @@ def evaluate_predictions_on_coco(
     coco_eval = COCOeval(coco_gt, coco_dt, iou_type)
 
     if xview:
+        coco_eval.params.areaRng = [[0, 1e5 ** 2], [0, 100], [100, 1000], [1000, 10000], [10000, 1e5 ** 2]]
+        coco_eval.params.areaRngLbl = ['all', 'small', 'medium', 'large', 'xlarge']
         coco_eval.params.maxDets = [10, 100, 1000000]
         coco_eval.params.iouThrs = np.array([0.5])
 
     coco_eval.evaluate()
     coco_eval.accumulate()
-    coco_eval.summarize()
+    coco_eval.summarize(xview=xview)
     return coco_eval
 
 

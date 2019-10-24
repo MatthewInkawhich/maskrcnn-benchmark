@@ -419,7 +419,7 @@ class COCOeval:
         toc = time.time()
         print('DONE (t={:0.2f}s).'.format( toc-tic))
 
-    def summarize(self):
+    def summarize(self, xview=False):
         '''
         Compute and display summary metrics for evaluation results.
         Note this functin can *only* be applied on the default parameter setting
@@ -465,22 +465,37 @@ class COCOeval:
 
             print(iStr.format(titleStr, typeStr, iouStr, areaRng, maxDets, mean_s))
             return mean_s
-        def _summarizeDets():
-            stats = np.zeros((12,))
-            stats[0] = _summarize(1, maxDets=self.params.maxDets[2], print_class_wise=True)
-            stats[1] = _summarize(1, iouThr=.5, maxDets=self.params.maxDets[2])
-            stats[2] = _summarize(1, iouThr=.75, maxDets=self.params.maxDets[2])
-            stats[3] = _summarize(1, areaRng='small', maxDets=self.params.maxDets[2])
-            stats[4] = _summarize(1, areaRng='medium', maxDets=self.params.maxDets[2])
-            stats[5] = _summarize(1, areaRng='large', maxDets=self.params.maxDets[2])
-            stats[6] = _summarize(0, maxDets=self.params.maxDets[0])
-            stats[7] = _summarize(0, maxDets=self.params.maxDets[1])
-            stats[8] = _summarize(0, maxDets=self.params.maxDets[2])
-            stats[9] = _summarize(0, areaRng='small', maxDets=self.params.maxDets[2])
-            stats[10] = _summarize(0, areaRng='medium', maxDets=self.params.maxDets[2])
-            stats[11] = _summarize(0, areaRng='large', maxDets=self.params.maxDets[2])
+        def _summarizeDets(xview=False):
+            if xview:
+                stats = np.zeros((12,))
+                stats[0] = _summarize(1, maxDets=self.params.maxDets[2], print_class_wise=True)
+                stats[1] = _summarize(1, areaRng='small', maxDets=self.params.maxDets[2])
+                stats[2] = _summarize(1, areaRng='medium', maxDets=self.params.maxDets[2])
+                stats[3] = _summarize(1, areaRng='large', maxDets=self.params.maxDets[2])
+                stats[4] = _summarize(1, areaRng='xlarge', maxDets=self.params.maxDets[2])
+                stats[5] = _summarize(0, maxDets=self.params.maxDets[0])
+                stats[6] = _summarize(0, maxDets=self.params.maxDets[1])
+                stats[7] = _summarize(0, maxDets=self.params.maxDets[2])
+                stats[8] = _summarize(0, areaRng='small', maxDets=self.params.maxDets[2])
+                stats[9] = _summarize(0, areaRng='medium', maxDets=self.params.maxDets[2])
+                stats[10] = _summarize(0, areaRng='large', maxDets=self.params.maxDets[2])
+                stats[11] = _summarize(0, areaRng='xlarge', maxDets=self.params.maxDets[2])
+            else:
+                stats = np.zeros((12,))
+                stats[0] = _summarize(1, maxDets=self.params.maxDets[2], print_class_wise=True)
+                stats[1] = _summarize(1, iouThr=.5, maxDets=self.params.maxDets[2])
+                stats[2] = _summarize(1, iouThr=.75, maxDets=self.params.maxDets[2])
+                stats[3] = _summarize(1, areaRng='small', maxDets=self.params.maxDets[2])
+                stats[4] = _summarize(1, areaRng='medium', maxDets=self.params.maxDets[2])
+                stats[5] = _summarize(1, areaRng='large', maxDets=self.params.maxDets[2])
+                stats[6] = _summarize(0, maxDets=self.params.maxDets[0])
+                stats[7] = _summarize(0, maxDets=self.params.maxDets[1])
+                stats[8] = _summarize(0, maxDets=self.params.maxDets[2])
+                stats[9] = _summarize(0, areaRng='small', maxDets=self.params.maxDets[2])
+                stats[10] = _summarize(0, areaRng='medium', maxDets=self.params.maxDets[2])
+                stats[11] = _summarize(0, areaRng='large', maxDets=self.params.maxDets[2])
             return stats
-        def _summarizeKps():
+        def _summarizeKps(xview=False):
             stats = np.zeros((10,))
             stats[0] = _summarize(1, maxDets=20)
             stats[1] = _summarize(1, maxDets=20, iouThr=.5)
@@ -500,7 +515,7 @@ class COCOeval:
             summarize = _summarizeDets
         elif iouType == 'keypoints':
             summarize = _summarizeKps
-        self.stats = summarize()
+        self.stats = summarize(xview=xview)
 
     def __str__(self):
         self.summarize()

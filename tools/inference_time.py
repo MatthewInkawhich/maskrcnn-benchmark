@@ -39,12 +39,6 @@ def main():
         default=None,
     )
     parser.add_argument(
-        "--speed-only",
-        dest="speed_only",
-        help="Only test speed of model",
-        action="store_true",
-    )
-    parser.add_argument(
         "opts",
         help="Modify config options using the command-line",
         default=None,
@@ -114,7 +108,6 @@ def main():
             expected_results=cfg.TEST.EXPECTED_RESULTS,
             expected_results_sigma_tol=cfg.TEST.EXPECTED_RESULTS_SIGMA_TOL,
             output_folder=output_folder,
-            speed_only=args.speed_only,
         )
         synchronize()
 
