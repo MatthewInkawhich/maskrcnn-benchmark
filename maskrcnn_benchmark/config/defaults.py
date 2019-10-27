@@ -290,6 +290,7 @@ _C.MODEL.RESNETS.WITH_MODULATED_DCN = False
 _C.MODEL.RESNETS.DEFORMABLE_GROUPS = 1
 
 _C.MODEL.RESNETS.MIDDLE_KERNEL_SIZES = []
+_C.MODEL.RESNETS.DILATIONS = (1, 1, 1)
 
 # ---------------------------------------------------------------------------- #
 # RetinaNet Options (Follow the Detectron version)

@@ -3,12 +3,13 @@ MODEL:
   BACKBONE:
     CONV_BODY: "R-101-C4"
   WEIGHT: "catalog://ImageNetPretrained/MSRA/R-101"
-  #DONT_LOAD: ["layer3", "layer4"]
+
   RPN:
     USE_FPN: False
     ANCHOR_SIZES: (16, 32, 64, 128, 256, 512)
-    ANCHOR_STRIDE: (16,)
-    #ANCHOR_STRIDE: (8,)
+    #ANCHOR_STRIDE: (24,)
+    #ANCHOR_STRIDE: (16,)
+    ANCHOR_STRIDE: (8,)
     ASPECT_RATIOS: (0.5, 1.0, 2.0)
     BATCH_SIZE_PER_IMAGE: 256
     PRE_NMS_TOP_N_TRAIN: 40000
@@ -23,14 +24,13 @@ MODEL:
     FEATURE_EXTRACTOR: "ResNet50Conv5ROIFeatureExtractor"
     PREDICTOR: "FastRCNNPredictor"
     POOLER_RESOLUTION: 14
-    POOLER_SCALES: (0.0625,)  # 1 / 16
-    #POOLER_SCALES: (0.125,)  # 1 / 8
+    #POOLER_SCALES: (0.0416667,)  # 1 / 24
+    #POOLER_SCALES: (0.0625,)     # 1 / 16
+    POOLER_SCALES: (0.125,)      # 1 / 8
     NUM_CLASSES: 61
     #NUM_CLASSES: 8
   RESNETS:
     DILATIONS: (1, 1, 2)
-    MIDDLE_KERNEL_SIZES: []
-    # MIDDLE_KERNEL_SIZES: [[3,3,3],[3,3,3,3],[3,3,3,3,3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]]
 
 INPUT:
   MIN_SIZE_TRAIN: (600,)
@@ -38,22 +38,25 @@ INPUT:
   MIN_SIZE_TEST: 600
   MAX_SIZE_TEST: 600
   
-
 DATASETS:
-    TRAIN: ("xView_full_train_mini",)
-    TEST: ("xView_full_val_mini",)
-    #TRAIN: ("xView_simple_train_mini",)
-    #TEST: ("xView_simple_val_mini",)
+  TRAIN: ("xView_full_train",)
+  TEST: ("xView_full_val",)
+  #TEST: ("xView_full_val_mini",)
+  #TRAIN: ("xView_simple_train",)
+  #TEST: ("xView_simple_val",)
 
 SOLVER:
-  BASE_LR: 0.0025
+  BASE_LR: 0.01
   WEIGHT_DECAY: 0.0001
-  STEPS: (480000, 640000)
-  MAX_ITER: 720000
-  IMS_PER_BATCH: 2
-  CHECKPOINT_PERIOD: 100
+  #STEPS: (120000, 160000)
+  #MAX_ITER: 180000
+  STEPS: (60000, 100000)
+  MAX_ITER: 120000
+  IMS_PER_BATCH: 8
+  CHECKPOINT_PERIOD: 2500
 
 TEST:
-  IMS_PER_BATCH: 1
+  IMS_PER_BATCH: 8
+    #IMS_PER_BATCH: 1
 
-OUTPUT_DIR: "./out/xview/test_1x"
+OUTPUT_DIR: "./out/xview/faster_R101_C4_dilation2"

@@ -77,6 +77,13 @@ def do_train(
         meters.update(loss=losses_reduced, **loss_dict_reduced)
 
         optimizer.zero_grad()
+
+#        print("loss_dict:")
+#        for k, v in loss_dict.items():
+#            print(k, v)
+#        print("losses:", losses)
+#        exit()
+
         # Note: If mixed precision is not used, this ends up doing nothing
         # Otherwise apply loss scaling for mixed-precision recipe
         with amp.scale_loss(losses, optimizer) as scaled_losses:

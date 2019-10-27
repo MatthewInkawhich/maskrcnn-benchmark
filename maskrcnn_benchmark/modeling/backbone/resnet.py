@@ -108,6 +108,10 @@ class ResNet(nn.Module):
             print("ERROR: Invalid cfg.MODEL.RPN.ANCHOR_STRIDE setting:", cfg.MODEL.RPN.ANCHOR_STRIDE)
             exit()
 
+        # Check to make sure the cfg.MODEL.RESNETS.DILATIONS length
+        # matches the stage_specs length
+        assert(len(cfg.MODEL.RESNETS.DILATIONS) == len(stage_specs), "ERROR: cfg.MODEL.RESNETS.DILATIONS length does not match length of stage_spec")
+
         # Constuct the specified ResNet stages
         num_groups = cfg.MODEL.RESNETS.NUM_GROUPS
         width_per_group = cfg.MODEL.RESNETS.WIDTH_PER_GROUP
@@ -141,8 +145,8 @@ class ResNet(nn.Module):
                 stage_spec.block_count,
                 num_groups,
                 cfg.MODEL.RESNETS.STRIDE_IN_1X1,
-                #first_stride=int(stage_spec.index > 1) + 1,
                 first_stride=strides[stage_idx],  # Choose stride based on ANCHOR_STRIDE
+                dilation=cfg.MODEL.RESNETS.DILATIONS[stage_idx],
                 dcn_config={
                     "stage_with_dcn": stage_with_dcn,
                     "with_modulated_dcn": cfg.MODEL.RESNETS.WITH_MODULATED_DCN,
@@ -302,7 +306,7 @@ class Bottleneck(nn.Module):
 
         self.downsample = None
         if in_channels != out_channels:
-            down_stride = stride if dilation == 1 else 1
+            down_stride = stride #if dilation == 1 else 1  # Don't want this
             self.downsample = nn.Sequential(
                 Conv2d(
                     in_channels, out_channels,
@@ -315,8 +319,9 @@ class Bottleneck(nn.Module):
                     if isinstance(l, Conv2d):
                         nn.init.kaiming_uniform_(l.weight, a=1)
 
-        if dilation > 1:
-            stride = 1 # reset to be 1
+        # Commented this out... don't want this
+        #if dilation > 1:
+        #    stride = 1 # reset to be 1
 
         # The original MSRA ResNet models have stride in the first 1x1 conv
         # The subsequent fb.torch.resnet and Caffe2 ResNe[X]t implementations have
