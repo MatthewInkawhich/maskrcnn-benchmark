@@ -78,6 +78,106 @@ ResNet152FPNStagesTo5 = tuple(
     for (i, c, r) in ((1, 3, True), (2, 8, True), (3, 36, True), (4, 3, True))
 )
 
+
+################################################################################
+### ResNet Stage
+################################################################################
+class ResNet_Stem(nn.Module):
+    def __init__(self, cfg, freeze=True):
+        super(ResNet_Stem, self).__init__()
+        # Translate string names to implementations
+        stem_module = _STEM_MODULES[cfg.MODEL.RESNETS.STEM_FUNC]
+        # Construct the stem module
+        self.module = stem_module(cfg)
+        # Optionally freeze (requires_grad=False)
+        if freeze:
+            self._freeze()
+
+    def _freeze(self):
+        m = self.module
+        for p in m.parameters():
+            p.requires_grad = False
+
+    def forward(self, x):
+        x = self.module(x)
+        return x
+
+# This class represents one ResNet stage.
+class ResNet_Stage(nn.Module):
+    def __init__(self, cfg, stage, in_channels):
+        super(ResNet_Stage, self).__init__()
+
+        # If we want to use the cfg in forward(), then we should make a copy
+        # of it and store it for later use:
+        # self.cfg = cfg.clone()
+
+        assert(stage >= 2 and stage <= 4, "Error: stage argument out of bounds.")
+
+        # Translate string names to implementations
+        stage_specs = _STAGE_SPECS[cfg.MODEL.BACKBONE.CONV_BODY]
+        transformation_module = _TRANSFORMATION_MODULES[cfg.MODEL.RESNETS.TRANS_FUNC]
+        stage_spec = stage_specs[stage - 2]
+
+        # Channel stuff
+        num_groups = cfg.MODEL.RESNETS.NUM_GROUPS
+        width_per_group = cfg.MODEL.RESNETS.WIDTH_PER_GROUP
+        #in_channels = cfg.MODEL.RESNETS.STEM_OUT_CHANNELS
+        stage2_bottleneck_channels = num_groups * width_per_group
+        stage2_out_channels = cfg.MODEL.RESNETS.RES2_OUT_CHANNELS
+        stage2_relative_factor = 2 ** (stage_spec.index - 1)
+        bottleneck_channels = stage2_bottleneck_channels * stage2_relative_factor
+        stage_with_dcn = cfg.MODEL.RESNETS.STAGE_WITH_DCN[stage_spec.index -1]
+
+        self.out_channels = stage2_out_channels * stage2_relative_factor
+        
+        # Build stage according to cfg.MODEL.ILADAPTIVE.C-
+        if stage == 2:
+            ila_spec = cfg.MODEL.ILADAPTIVE.C2
+        elif stage == 3:
+            ila_spec = cfg.MODEL.ILADAPTIVE.C3
+        elif stage == 4:
+            ila_spec = cfg.MODEL.ILADAPTIVE.C4
+
+        self.branches = []
+        for branch_idx in range(len(ila_spec)):
+            name = "branch" + str(branch_idx)
+            module = _make_stage(
+                transformation_module,
+                in_channels,
+                bottleneck_channels,
+                self.out_channels,
+                stage_spec.block_count,
+                num_groups,
+                cfg.MODEL.RESNETS.STRIDE_IN_1X1,
+                first_stride=ila_spec[branch_idx][0],
+                dilation=ila_spec[branch_idx][1],
+                dcn_config={
+                    "stage_with_dcn": stage_with_dcn,
+                    "with_modulated_dcn": cfg.MODEL.RESNETS.WITH_MODULATED_DCN,
+                    "deformable_groups": cfg.MODEL.RESNETS.DEFORMABLE_GROUPS,
+                },
+            )
+            self.add_module(name, module)
+            self.branches.append(name)
+        # Optionally freeze (requires_grad=False) the module
+        if (stage <= cfg.MODEL.BACKBONE.FREEZE_CONV_BODY_AT):
+            self._freeze()
+
+    def _freeze(self):
+        for b in range(len(self.branches)):
+            m = getattr(self, "branch" + str(b))
+            for p in m.parameters():
+                p.requires_grad = False
+
+    def forward(self, x, branch=0):
+        branch_name = self.branches[branch]
+        x = getattr(self, branch_name)(x)
+        return x
+
+
+################################################################################
+### Full ResNet
+################################################################################
 class ResNet(nn.Module):
     def __init__(self, cfg):
         super(ResNet, self).__init__()

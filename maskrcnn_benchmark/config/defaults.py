@@ -390,6 +390,22 @@ _C.MODEL.FBNET.RPN_HEAD_BLOCKS = 0
 _C.MODEL.FBNET.RPN_BN_TYPE = ""
 
 
+
+# ---------------------------------------------------------------------------- #
+# ILAdaptive Options
+# ---------------------------------------------------------------------------- #
+_C.MODEL.ILADAPTIVE = CN()
+# Configure ResNet layer "branches"
+# len(): number of different branches
+# inner tuples: [stride, dilation]
+_C.MODEL.ILADAPTIVE.C2 = [[1, 1]]
+_C.MODEL.ILADAPTIVE.C3 = [[2, 1]]
+_C.MODEL.ILADAPTIVE.C4 = [[1, 1], [2, 1], [2, 2], [2, 3]]
+
+
+
+
+
 # ---------------------------------------------------------------------------- #
 # Solver
 # ---------------------------------------------------------------------------- #

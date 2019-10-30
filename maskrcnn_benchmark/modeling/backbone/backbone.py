@@ -7,6 +7,7 @@ from maskrcnn_benchmark.modeling import registry
 from maskrcnn_benchmark.modeling.make_layers import conv_with_kaiming_uniform
 from . import fpn as fpn_module
 from . import resnet
+from . import switch
 
 
 @registry.BACKBONES.register("R-50-C4")
@@ -77,3 +78,23 @@ def build_backbone(cfg):
             cfg.MODEL.BACKBONE.CONV_BODY
         )
     return registry.BACKBONES[cfg.MODEL.BACKBONE.CONV_BODY](cfg)
+
+
+
+# Build ResNet stem
+def build_resnet_stem(cfg):
+    module = resnet.ResNet_Stem(cfg)
+    module = nn.Sequential(OrderedDict([("stem", module)]))
+    return module
+
+# Build a ResNet stage
+def build_resnet_stage(cfg, stage, in_channels):
+    module = resnet.ResNet_Stage(cfg, stage, in_channels)
+    out_channels = module.out_channels
+    #module = nn.Sequential(OrderedDict([("module", module)]))
+    return module, out_channels
+
+# Build ILA switch
+def build_ila_switch(in_channels, num_branches):
+    module = switch.ILAdaptive_Switch(in_channels, num_branches)
+    return module

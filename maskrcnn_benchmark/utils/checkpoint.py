@@ -49,7 +49,7 @@ class Checkpointer(object):
         torch.save(data, save_file)
         self.tag_last_checkpoint(save_file)
 
-    def load(self, f=None, use_latest=True, dont_load=[]):
+    def load(self, f=None, use_latest=True, dont_load=[], branch_counts=[]):
         if self.has_checkpoint() and use_latest:
             # override argument with existing checkpoint
             f = self.get_checkpoint_file()
@@ -59,7 +59,7 @@ class Checkpointer(object):
             return {}
         self.logger.info("Loading checkpoint from {}".format(f))
         checkpoint = self._load_file(f)
-        self._load_model(checkpoint, dont_load)
+        self._load_model(checkpoint, dont_load, branch_counts)
         if "optimizer" in checkpoint and self.optimizer:
             self.logger.info("Loading optimizer from {}".format(f))
             self.optimizer.load_state_dict(checkpoint.pop("optimizer"))
@@ -94,8 +94,8 @@ class Checkpointer(object):
     def _load_file(self, f):
         return torch.load(f, map_location=torch.device("cpu"))
 
-    def _load_model(self, checkpoint, dont_load=[]):
-        load_state_dict(self.model, checkpoint.pop("model"), dont_load)
+    def _load_model(self, checkpoint, dont_load=[], branch_counts=[]):
+        load_state_dict(self.model, checkpoint.pop("model"), dont_load, branch_counts)
 
 
 class DetectronCheckpointer(Checkpointer):

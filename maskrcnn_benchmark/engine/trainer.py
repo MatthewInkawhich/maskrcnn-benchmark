@@ -67,7 +67,8 @@ def do_train(
         images = images.to(device)
         targets = [target.to(device) for target in targets]
 
-        loss_dict = model(images, targets)
+        #loss_dict = model(images, targets, option=1)
+        loss_dict = model(images, targets, option=0)
 
         losses = sum(loss for loss in loss_dict.values())
 
@@ -78,11 +79,11 @@ def do_train(
 
         optimizer.zero_grad()
 
-#        print("loss_dict:")
-#        for k, v in loss_dict.items():
-#            print(k, v)
-#        print("losses:", losses)
-#        exit()
+        print("loss_dict:")
+        for k, v in loss_dict.items():
+            print(k, v)
+        print("losses:", losses)
+        exit()
 
         # Note: If mixed precision is not used, this ends up doing nothing
         # Otherwise apply loss scaling for mixed-precision recipe

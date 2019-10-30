@@ -69,7 +69,10 @@ def train(cfg, local_rank, distributed, empty_cache=False):
     )
 
     # Load pretrained base network weights
-    extra_checkpoint_data = checkpointer.load(cfg.MODEL.WEIGHT, dont_load=cfg.MODEL.DONT_LOAD)
+    if cfg.MODEL.META_ARCHITECTURE == "ILAdaptiveRCNN":
+        extra_checkpoint_data = checkpointer.load(cfg.MODEL.WEIGHT, dont_load=cfg.MODEL.DONT_LOAD, branch_counts=[len(cfg.MODEL.ILADAPTIVE.C2), len(cfg.MODEL.ILADAPTIVE.C3), len(cfg.MODEL.ILADAPTIVE.C4)])
+    else:
+        extra_checkpoint_data = checkpointer.load(cfg.MODEL.WEIGHT, dont_load=cfg.MODEL.DONT_LOAD)
     #exit()
 
     arguments.update(extra_checkpoint_data)
