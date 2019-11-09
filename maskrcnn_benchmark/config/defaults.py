@@ -392,15 +392,15 @@ _C.MODEL.FBNET.RPN_BN_TYPE = ""
 
 
 # ---------------------------------------------------------------------------- #
-# ILAdaptive Options
+# EWAdaptive Options
 # ---------------------------------------------------------------------------- #
-_C.MODEL.ILADAPTIVE = CN()
+_C.MODEL.EWADAPTIVE = CN()
 # Configure ResNet layer "branches"
 # len(): number of different branches
 # inner tuples: [stride, dilation]
-_C.MODEL.ILADAPTIVE.C2 = [[1, 1]]
-_C.MODEL.ILADAPTIVE.C3 = [[2, 1]]
-_C.MODEL.ILADAPTIVE.C4 = [[1, 1], [2, 1], [2, 2], [2, 3]]
+_C.MODEL.EWADAPTIVE.C2 = [[1, 1]]
+_C.MODEL.EWADAPTIVE.C3 = [[2, 1]]
+_C.MODEL.EWADAPTIVE.C4 = [[1, 1], [2, 1], [2, 2], [2, 3]]
 
 
 

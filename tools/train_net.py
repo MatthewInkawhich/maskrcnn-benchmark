@@ -16,7 +16,7 @@ from maskrcnn_benchmark.data import make_data_loader
 from maskrcnn_benchmark.solver import make_lr_scheduler
 from maskrcnn_benchmark.solver import make_optimizer
 from maskrcnn_benchmark.engine.inference import inference
-from maskrcnn_benchmark.engine.trainer import do_train
+from maskrcnn_benchmark.engine.trainer import do_train, do_pretrain_ewadaptive
 from maskrcnn_benchmark.modeling.detector import build_detection_model
 from maskrcnn_benchmark.utils.checkpoint import DetectronCheckpointer
 from maskrcnn_benchmark.utils.collect_env import collect_env_info
@@ -69,8 +69,8 @@ def train(cfg, local_rank, distributed, empty_cache=False):
     )
 
     # Load pretrained base network weights
-    if cfg.MODEL.META_ARCHITECTURE == "ILAdaptiveRCNN":
-        extra_checkpoint_data = checkpointer.load(cfg.MODEL.WEIGHT, dont_load=cfg.MODEL.DONT_LOAD, branch_counts=[len(cfg.MODEL.ILADAPTIVE.C2), len(cfg.MODEL.ILADAPTIVE.C3), len(cfg.MODEL.ILADAPTIVE.C4)])
+    if cfg.MODEL.META_ARCHITECTURE == "EWAdaptiveRCNN":
+        extra_checkpoint_data = checkpointer.load(cfg.MODEL.WEIGHT, dont_load=cfg.MODEL.DONT_LOAD, branch_counts=[len(cfg.MODEL.EWADAPTIVE.C2), len(cfg.MODEL.EWADAPTIVE.C3), len(cfg.MODEL.EWADAPTIVE.C4)])
     else:
         extra_checkpoint_data = checkpointer.load(cfg.MODEL.WEIGHT, dont_load=cfg.MODEL.DONT_LOAD)
     #exit()
@@ -86,17 +86,32 @@ def train(cfg, local_rank, distributed, empty_cache=False):
 
     checkpoint_period = cfg.SOLVER.CHECKPOINT_PERIOD
 
-    do_train(
-        model,
-        data_loader,
-        optimizer,
-        scheduler,
-        checkpointer,
-        device,
-        checkpoint_period,
-        empty_cache,
-        arguments,
-    )
+    if cfg.MODEL.META_ARCHITECTURE == "EWAdaptiveRCNN":
+        # First step is to pretrain backbone
+        do_pretrain_ewadaptive(
+            model,
+            data_loader,
+            optimizer,
+            scheduler,
+            checkpointer,
+            device,
+            checkpoint_period,
+            empty_cache,
+            arguments,
+        )
+
+    else:
+        do_train(
+            model,
+            data_loader,
+            optimizer,
+            scheduler,
+            checkpointer,
+            device,
+            checkpoint_period,
+            empty_cache,
+            arguments,
+        )
 
     return model
 

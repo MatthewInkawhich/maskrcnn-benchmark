@@ -23,7 +23,7 @@ MODEL:
   ROI_BOX_HEAD:
     FEATURE_EXTRACTOR: "ResNet50Conv5ROIFeatureExtractor"
     PREDICTOR: "FastRCNNPredictor"
-    POOLER_RESOLUTION: 14
+    POOLER_RESOLUTION: 30
     #POOLER_SCALES: (0.0416667,)  # 1 / 24
     POOLER_SCALES: (0.0625,)     # 1 / 16
     #POOLER_SCALES: (0.125,)      # 1 / 8
@@ -57,4 +57,4 @@ TEST:
   IMS_PER_BATCH: 8
     #IMS_PER_BATCH: 1
 
-OUTPUT_DIR: "./out/xview/faster_R101_C4_stride16"
+OUTPUT_DIR: "./out/xview/faster_R101_C4_roipool30"

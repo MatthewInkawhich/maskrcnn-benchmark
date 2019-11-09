@@ -130,16 +130,16 @@ class ResNet_Stage(nn.Module):
 
         self.out_channels = stage2_out_channels * stage2_relative_factor
         
-        # Build stage according to cfg.MODEL.ILADAPTIVE.C-
+        # Build stage according to cfg.MODEL.EWADAPTIVE.C-
         if stage == 2:
-            ila_spec = cfg.MODEL.ILADAPTIVE.C2
+            ewa_spec = cfg.MODEL.EWADAPTIVE.C2
         elif stage == 3:
-            ila_spec = cfg.MODEL.ILADAPTIVE.C3
+            ewa_spec = cfg.MODEL.EWADAPTIVE.C3
         elif stage == 4:
-            ila_spec = cfg.MODEL.ILADAPTIVE.C4
+            ewa_spec = cfg.MODEL.EWADAPTIVE.C4
 
         self.branches = []
-        for branch_idx in range(len(ila_spec)):
+        for branch_idx in range(len(ewa_spec)):
             name = "branch" + str(branch_idx)
             module = _make_stage(
                 transformation_module,
@@ -149,8 +149,8 @@ class ResNet_Stage(nn.Module):
                 stage_spec.block_count,
                 num_groups,
                 cfg.MODEL.RESNETS.STRIDE_IN_1X1,
-                first_stride=ila_spec[branch_idx][0],
-                dilation=ila_spec[branch_idx][1],
+                first_stride=ewa_spec[branch_idx][0],
+                dilation=ewa_spec[branch_idx][1],
                 dcn_config={
                     "stage_with_dcn": stage_with_dcn,
                     "with_modulated_dcn": cfg.MODEL.RESNETS.WITH_MODULATED_DCN,

@@ -7,7 +7,7 @@ from maskrcnn_benchmark.modeling import registry
 from maskrcnn_benchmark.modeling.make_layers import conv_with_kaiming_uniform
 from . import fpn as fpn_module
 from . import resnet
-from . import switch
+from . import selector
 
 
 @registry.BACKBONES.register("R-50-C4")
@@ -95,6 +95,6 @@ def build_resnet_stage(cfg, stage, in_channels):
     return module, out_channels
 
 # Build ILA switch
-def build_ila_switch(in_channels, num_branches):
-    module = switch.ILAdaptive_Switch(in_channels, num_branches)
+def build_ewa_selector(in_channels, num_branches):
+    module = selector.EWAdaptive_Selector(in_channels, num_branches)
     return module

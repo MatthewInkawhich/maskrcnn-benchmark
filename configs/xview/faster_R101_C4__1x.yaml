@@ -28,7 +28,7 @@ MODEL:
     NUM_CLASSES: 61
     #NUM_CLASSES: 8
   RESNETS:
-    DILATIONS: (1, 1, 2)
+    #DILATIONS: (1, 1, 2)
     MIDDLE_KERNEL_SIZES: []
     # MIDDLE_KERNEL_SIZES: [[3,3,3],[3,3,3,3],[3,3,3,3,3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]]
 
