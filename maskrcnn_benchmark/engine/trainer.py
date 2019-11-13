@@ -152,6 +152,7 @@ def do_pretrain_ewadaptive(
     checkpoint_period,
     empty_cache,
     arguments,
+    distributed,
 ):
     logger = logging.getLogger("maskrcnn_benchmark.trainer")
     logger.info("Start training")
@@ -185,18 +186,29 @@ def do_pretrain_ewadaptive(
 
         optimizer.zero_grad()
 
-        print("loss_dict:")
-        for k, v in loss_dict.items():
-            print(k, v)
-        print("losses:", losses)
-        exit()
-
+        #print("loss_dict:")
+        #for k, v in loss_dict.items():
+        #    print(k, v)
+        #print("losses:", losses)
+        #exit()
+        
         # Note: If mixed precision is not used, this ends up doing nothing
         # Otherwise apply loss scaling for mixed-precision recipe
         with amp.scale_loss(losses, optimizer) as scaled_losses:
             scaled_losses.backward()
         optimizer.step()
         scheduler.step()
+
+        #model.module.check_sync()
+        # Sync weights across branches of adaptive stages (share updated weights)
+        if distributed:
+            model.module.sync_weights()
+        else:
+            model.sync_weights()
+
+        #exit()
+
+        #model.module.check_sync()
 
         # Recommended fix to stop growing memory
         # https://github.com/facebookresearch/maskrcnn-benchmark/issues/884#issuecomment-508618338
@@ -229,9 +241,9 @@ def do_pretrain_ewadaptive(
                 )
             )
         if iteration % checkpoint_period == 0:
-            checkpointer.save("model_{:07d}".format(iteration), **arguments)
+            checkpointer.save("model_pretrain_{:07d}".format(iteration), **arguments)
         if iteration == max_iter:
-            checkpointer.save("model_final_pretrain", **arguments)
+            checkpointer.save("model_pretrain_final", **arguments)
 
     total_training_time = time.time() - start_training_time
     total_time_str = str(datetime.timedelta(seconds=total_training_time))
