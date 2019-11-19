@@ -1,6 +1,6 @@
-# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
-r"""
-Basic training script for PyTorch
+# MatthewInkawhich
+"""
+This script generates the GT selector maps that we will later use for selector training.
 """
 
 # Set up custom environment before nearly anything else is imported

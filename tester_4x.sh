@@ -15,4 +15,6 @@
 #python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/xview/faster_R101_C4_middleks_3-4-23__4x.yaml" --ckpt "out/xview/faster_R101_C4_middleks_3-4-23/model_0100000.pth"
 #echo "MIDDLE_KS:3-4-23"
 
-python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/xview/faster_R101_C4_roipool22__4x.yaml" --ckpt "out/xview/faster_R101_C4_roipool22/model_final.pth"
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/xview/faster_R101_C4_roipool22__4x.yaml" --ckpt "out/xview/faster_R101_C4_roipool22/model_final.pth"
+
+python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/xview/ewadaptive/ewa_R50_C4__4x.yaml" --ckpt "out/xview/ewadaptive/ewa_R50_C4/model_pretrain_final.pth"

@@ -100,16 +100,17 @@ def main():
 
     # Set paths
     if XVIEW:
-        CONFIG_FILE_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'configs', 'xview', 'faster_R101_C4_stride4__4x.yaml')
-        OUT_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'out', 'xview', 'faster_R101_C4_stride4')
-        #CONFIG_FILE_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'configs', 'xview', 'faster_R101_C4_stride24__4x.yaml')
-        #OUT_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'out', 'xview', 'faster_R101_C4_stride24')
-        CHECKPOINT_PATH = os.path.join(OUT_PATH, 'model_final.pth')
+        #CONFIG_FILE_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'configs', 'xview', 'faster_R101_C4_stride4__4x.yaml')
+        #OUT_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'out', 'xview', 'faster_R101_C4_stride4')
+        #CHECKPOINT_PATH = os.path.join(OUT_PATH, 'model_final.pth')
+        CONFIG_FILE_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'configs', 'xview', 'ewadaptive', 'ewa_R50_C4__4x.yaml')
+        OUT_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'out', 'xview', 'ewadaptive', 'ewa_R50_C4')
+        CHECKPOINT_PATH = os.path.join(OUT_PATH, 'model_pretrain_final.pth')
         LABEL_PATH = os.path.join(OUT_PATH, 'labels.json')
         DATA_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'datasets', 'xView-coco-600')
         ANNOTATION_PATH = os.path.join(DATA_PATH, 'annotations', 'val_full.json')
-        #IMAGE_PATH = os.path.join(DATA_PATH, 'val_images', 'img_97_14_rot0.jpg')
-        IMAGE_PATH = os.path.join(DATA_PATH, 'val_images', 'img_322_30_rot0.jpg')
+        IMAGE_PATH = os.path.join(DATA_PATH, 'val_images', 'img_97_14_rot0.jpg')
+        #IMAGE_PATH = os.path.join(DATA_PATH, 'val_images', 'img_322_30_rot0.jpg')
         DRAW_THRESH = 0.6
     else: # COCO
         CONFIG_FILE_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'configs', 'coco', 'faster_R101_C4_vanilla__4x.yaml')
@@ -149,6 +150,10 @@ def main():
         #model.to(cfg.MODEL.DEVICE)
         model.eval()
 
+        ewadaptive = False
+        if cfg.MODEL.META_ARCHITECTURE == "EWAdaptiveRCNN":
+            ewadaptive = True
+
         # Load model checkpoint
         output_dir = cfg.OUTPUT_DIR
         checkpointer = DetectronCheckpointer(cfg, model, save_dir=output_dir)
@@ -170,7 +175,10 @@ def main():
         # Forward pass img_input thru model
         # This returns a BoxList object with the detections
         with torch.no_grad():
-            output = model(img_input)
+            if ewadaptive:
+                output = model(img_input, option="inference")
+            else:
+                output = model(img_input)
 
         # Separate predictions into separate variables
         out_boxlist = output[0]

@@ -6,7 +6,7 @@ import time
 import torch
 import torch.distributed as dist
 
-from maskrcnn_benchmark.utils.comm import get_world_size
+from maskrcnn_benchmark.utils.comm import get_world_size, get_rank
 from maskrcnn_benchmark.utils.metric_logger import MetricLogger
 
 from apex import amp
@@ -174,8 +174,9 @@ def do_pretrain_ewadaptive(
         images = images.to(device)
         targets = [target.to(device) for target in targets]
 
+        #print("Rank: {}, Iteration: {}".format(get_rank(), iteration))
         #loss_dict = model(images, targets)
-        loss_dict = model(images, targets, option="pretrain")
+        loss_dict = model(images, targets, option="pretrain", iteration=iteration)
 
         losses = sum(loss for loss in loss_dict.values())
 
@@ -206,9 +207,9 @@ def do_pretrain_ewadaptive(
         else:
             model.sync_weights()
 
-        #exit()
-
+        
         #model.module.check_sync()
+        #exit()
 
         # Recommended fix to stop growing memory
         # https://github.com/facebookresearch/maskrcnn-benchmark/issues/884#issuecomment-508618338

@@ -15,7 +15,7 @@ from ..utils.timer import Timer, get_time_str
 from .bbox_aug import im_detect_bbox_aug
 
 
-def compute_on_dataset(model, data_loader, device, timer=None, speed_only=False):
+def compute_on_dataset(model, data_loader, device, timer=None, speed_only=False, ewadaptive=False):
     model.eval()
     results_dict = {}
     cpu_device = torch.device("cpu")
@@ -27,7 +27,10 @@ def compute_on_dataset(model, data_loader, device, timer=None, speed_only=False)
             if cfg.TEST.BBOX_AUG.ENABLED:
                 output = im_detect_bbox_aug(model, images, device)
             else:
-                output = model(images.to(device))
+                if ewadaptive:
+                    output = model(images.to(device), option="inference")
+                else:
+                    output = model(images.to(device))
             if timer:
                 if not cfg.MODEL.DEVICE == 'cpu':
                     torch.cuda.synchronize()
@@ -63,6 +66,8 @@ def _accumulate_predictions_from_multiple_gpus(predictions_per_gpu):
     return predictions
 
 
+
+
 def inference(
         model,
         data_loader,
@@ -74,6 +79,7 @@ def inference(
         expected_results_sigma_tol=4,
         output_folder=None,
         speed_only=False,
+        ewadaptive=False,
 ):
     # convert to a torch.device for efficiency
     device = torch.device(device)
@@ -84,7 +90,7 @@ def inference(
     total_timer = Timer()
     inference_timer = Timer()
     total_timer.tic()
-    predictions = compute_on_dataset(model, data_loader, device, inference_timer, speed_only)
+    predictions = compute_on_dataset(model, data_loader, device, inference_timer, speed_only, ewadaptive)
     # wait for all processes to complete before measuring the time
     synchronize()
     total_time = total_timer.toc()
@@ -125,3 +131,5 @@ def inference(
                     predictions=predictions,
                     output_folder=output_folder,
                     **extra_args)
+
+

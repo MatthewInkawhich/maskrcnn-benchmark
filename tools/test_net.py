@@ -79,6 +79,10 @@ def main():
     model.to(cfg.MODEL.DEVICE)
     print(model)
 
+    ewadaptive = False
+    if cfg.MODEL.META_ARCHITECTURE == "EWAdaptiveRCNN":
+        ewadaptive = True
+
     # Initialize mixed-precision if necessary
     use_mixed_precision = cfg.DTYPE == 'float16'
     amp_handle = amp.init(enabled=use_mixed_precision, verbose=cfg.AMP_VERBOSE)
@@ -87,6 +91,11 @@ def main():
     checkpointer = DetectronCheckpointer(cfg, model, save_dir=output_dir)
     ckpt = cfg.MODEL.WEIGHT if args.ckpt is None else args.ckpt
     _ = checkpointer.load(ckpt, use_latest=args.ckpt is None)
+
+    
+    # temp
+    #model.check_sync()
+    #exit()
 
     iou_types = ("bbox",)
     if cfg.MODEL.MASK_ON:
@@ -115,6 +124,7 @@ def main():
             expected_results_sigma_tol=cfg.TEST.EXPECTED_RESULTS_SIGMA_TOL,
             output_folder=output_folder,
             speed_only=args.speed_only,
+            ewadaptive=ewadaptive,
         )
         synchronize()
 

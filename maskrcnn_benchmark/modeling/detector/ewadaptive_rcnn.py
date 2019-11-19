@@ -52,10 +52,12 @@ class EWAdaptiveRCNN(nn.Module):
         self.synced = True
 
 
-    def _get_random_branch_choice(self, num_branches):
+    def _get_random_branch_choice(self, num_branches, seed=0):
         """
         Helper function to generate random branch index choice for pretraining
         """
+        random.seed(seed)
+
         branch_choice = 0
         if num_branches > 1:
             branch_choice = random.randint(0, num_branches - 1)
@@ -134,7 +136,7 @@ class EWAdaptiveRCNN(nn.Module):
 
 
 
-    def forward(self, images, targets=None, option="inference"):
+    def forward(self, images, targets=None, option="inference", iteration=0, selector_idx=0):
         # The 'option' arg defines what sub _forward we want to use
         if option not in self.forward_options:
             raise ValueError("Error: option arg is NOT valid! Must choose one of self.forward_options")
@@ -145,7 +147,10 @@ class EWAdaptiveRCNN(nn.Module):
         if option == "inference":
             return self._forward_inference(images)
         if option == "pretrain":
-            return self._forward_pretrain(images, targets)
+            return self._forward_pretrain(images, targets, iteration)
+        if option == "generate_selector_gt":
+            return self._forward_generate_selector_gt(images, targets, selector_idx)
+
 
 
     def _forward_inference(self, images):
@@ -158,9 +163,9 @@ class EWAdaptiveRCNN(nn.Module):
 
         ### Process image data with stages
         features_c1 = self.C1(images.tensors)
-        features_c2 = self.C2(features_c1, branch=0)
-        features_c3 = self.C3(features_c2, branch=0)
-        features = [self.C4(features_c3, branch=0)] 
+        features_c2 = self.C2(features_c1, branch=1)
+        features_c3 = self.C3(features_c2, branch=1)
+        features = [self.C4(features_c3, branch=1)] 
 
         # Forward thru RPN
         proposals, proposal_losses = self.rpn(images, features, targets=None)
@@ -177,12 +182,14 @@ class EWAdaptiveRCNN(nn.Module):
         return result
 
 
-    def _forward_pretrain(self, images, targets):
+
+    def _forward_pretrain(self, images, targets, iteration):
         """
         This function is used for pretraining of the adaptive stages.
         It returns a losses dictionary which contains separate entries for
         each loss component.
         """
+
         # Convert images input to image_list (if it isnt already)
         images = to_image_list(images)
         #print("images:", images.tensors.size())
@@ -193,17 +200,17 @@ class EWAdaptiveRCNN(nn.Module):
         features_c1 = self.C1(images.tensors)
         
         # Choose random C2 branch
-        branch_choice_c2 = self._get_random_branch_choice(len(self.C2.branches))
+        branch_choice_c2 = self._get_random_branch_choice(len(self.C2.branches), seed=iteration)
         #print("branch choice c2:", branch_choice_c2)
         features_c2 = self.C2(features_c1, branch=branch_choice_c2)
 
         # Choose random C3 branch
-        branch_choice_c3 = self._get_random_branch_choice(len(self.C3.branches))
+        branch_choice_c3 = self._get_random_branch_choice(len(self.C3.branches), seed=iteration+1)
         #print("branch choice c3:", branch_choice_c3)
         features_c3 = self.C3(features_c2, branch=branch_choice_c3)
 
         # Choose random C4 branch
-        branch_choice_c4 = self._get_random_branch_choice(len(self.C4.branches))
+        branch_choice_c4 = self._get_random_branch_choice(len(self.C4.branches), seed=iteration+2)
         #print("branch choice c4:", branch_choice_c4)
         features_c4 = self.C4(features_c3, branch=branch_choice_c4)
 
@@ -244,3 +251,35 @@ class EWAdaptiveRCNN(nn.Module):
 
         return losses
 
+
+
+    def _forward_generate_selector_gt(self, images, targets, selector_idx):
+        """
+        This function is used for generating selector GT maps. For the selector at
+        selector_idx, run all branches till prediction and return a loss dict with
+        entries for losses from each branch. For all other adaptive stages, use
+        branch=1 (dilation=2).
+        """
+        # Convert images input to image_list (if it isnt already)
+        images = to_image_list(images)
+
+        ### Process image data with stages
+        features_c1 = self.C1(images.tensors)
+        features_c2 = self.C2(features_c1, branch=1)
+        features_c3 = self.C3(features_c2, branch=1)
+        features = [self.C4(features_c3, branch=1)] 
+
+        # Forward thru RPN
+        proposals, proposal_losses = self.rpn(images, features, targets=None)
+
+        # Forward thru RoI heads
+        if self.roi_heads:
+            x, result, detector_losses = self.roi_heads(features, proposals, targets=None)
+        else:
+            # RPN-only models don't have roi_heads
+            x = features
+            result = proposals
+            detector_losses = {}
+
+        
+        return result
