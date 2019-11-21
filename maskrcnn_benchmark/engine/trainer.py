@@ -175,7 +175,6 @@ def do_pretrain_ewadaptive(
         targets = [target.to(device) for target in targets]
 
         #print("Rank: {}, Iteration: {}".format(get_rank(), iteration))
-        #loss_dict = model(images, targets)
         loss_dict = model(images, targets, option="pretrain", iteration=iteration)
 
         losses = sum(loss for loss in loss_dict.values())

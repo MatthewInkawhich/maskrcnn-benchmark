@@ -107,8 +107,13 @@ def make_batch_data_sampler(
     return batch_sampler
 
 
-def make_data_loader(cfg, is_train=True, is_distributed=False, start_iter=0):
+def make_data_loader(cfg, is_train=True, is_distributed=False, start_iter=0, generate_selector_gts=False):
     num_gpus = get_world_size()
+    if generate_selector_gts:
+        images_per_batch = cfg.EWADAPTIVE.GENERATE_SELECTOR_GTS_BATCH_SIZE
+        images_per_gpu = images_per_batch
+        shuffle = False
+        num_iters = None
     if is_train:
         images_per_batch = cfg.SOLVER.IMS_PER_BATCH
         assert (
@@ -154,10 +159,10 @@ def make_data_loader(cfg, is_train=True, is_distributed=False, start_iter=0):
     dataset_list = cfg.DATASETS.TRAIN if is_train else cfg.DATASETS.TEST
 
     # If bbox aug is enabled in testing, simply set transforms to None and we will apply transforms later
-    transforms = None if not is_train and cfg.TEST.BBOX_AUG.ENABLED else build_transforms(cfg, is_train)
+    transforms = None if generate_selector_gts or (not is_train and cfg.TEST.BBOX_AUG.ENABLED) else build_transforms(cfg, is_train)
     datasets = build_dataset(dataset_list, transforms, DatasetCatalog, is_train)
 
-    if is_train:
+    if is_train and not generate_selector_gts:
         # save category_id to label name mapping
         save_labels(datasets, cfg.OUTPUT_DIR)
 

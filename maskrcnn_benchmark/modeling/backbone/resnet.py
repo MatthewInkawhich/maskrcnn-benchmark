@@ -88,18 +88,18 @@ class ResNet_Stem(nn.Module):
         # Translate string names to implementations
         stem_module = _STEM_MODULES[cfg.MODEL.RESNETS.STEM_FUNC]
         # Construct the stem module
-        self.module = stem_module(cfg)
+        self.stem = stem_module(cfg)
         # Optionally freeze (requires_grad=False)
         if freeze:
             self._freeze()
 
     def _freeze(self):
-        m = self.module
+        m = self.stem
         for p in m.parameters():
             p.requires_grad = False
 
     def forward(self, x):
-        x = self.module(x)
+        x = self.stem(x)
         return x
 
 # This class represents one ResNet stage.
@@ -276,12 +276,12 @@ class ResNet(nn.Module):
 
     def forward(self, x):
         outputs = []
-        #print("input:", x.size())
+        #print("input:", x, x.size())
         x = self.stem(x)
-        #print("stem:", x.size())
+        #print("stem:", x, x.size())
         for stage_name in self.stages:
             x = getattr(self, stage_name)(x)
-            #print(stage_name, x.size())
+            #print(stage_name, x, x.size())
             if self.return_features[stage_name]:
                 outputs.append(x)
         return outputs

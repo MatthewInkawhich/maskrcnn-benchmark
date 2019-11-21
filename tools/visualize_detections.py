@@ -100,11 +100,14 @@ def main():
 
     # Set paths
     if XVIEW:
-        #CONFIG_FILE_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'configs', 'xview', 'faster_R101_C4_stride4__4x.yaml')
-        #OUT_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'out', 'xview', 'faster_R101_C4_stride4')
+        #CONFIG_FILE_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'configs', 'xview', 'faster_R101_C4_stride16__4x.yaml')
+        #OUT_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'out', 'xview', 'faster_R101_C4_stride16')
         #CHECKPOINT_PATH = os.path.join(OUT_PATH, 'model_final.pth')
-        CONFIG_FILE_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'configs', 'xview', 'ewadaptive', 'ewa_R50_C4__4x.yaml')
-        OUT_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'out', 'xview', 'ewadaptive', 'ewa_R50_C4')
+        #CONFIG_FILE_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'configs', 'xview', 'faster_R50_C4_stride16__4x.yaml')
+        #OUT_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'out', 'xview', 'faster_R50_C4_stride16')
+        #CHECKPOINT_PATH = os.path.join(OUT_PATH, 'model_final.pth')
+        CONFIG_FILE_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'configs', 'xview', 'ewadaptive', 'ewa_R50_C3C4__4x.yaml')
+        OUT_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'out', 'xview', 'ewadaptive', 'ewa_R50_C3C4')
         CHECKPOINT_PATH = os.path.join(OUT_PATH, 'model_pretrain_final.pth')
         LABEL_PATH = os.path.join(OUT_PATH, 'labels.json')
         DATA_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'datasets', 'xView-coco-600')
@@ -148,6 +151,7 @@ def main():
         # Build model
         model = build_detection_model(cfg)
         #model.to(cfg.MODEL.DEVICE)
+
         model.eval()
 
         ewadaptive = False
@@ -158,6 +162,7 @@ def main():
         output_dir = cfg.OUTPUT_DIR
         checkpointer = DetectronCheckpointer(cfg, model, save_dir=output_dir)
         _ = checkpointer.load(CHECKPOINT_PATH, use_latest=False)
+
 
         # Convert to tensor and perform transforms
         img = F.to_tensor(pil_img)
@@ -179,7 +184,7 @@ def main():
                 output = model(img_input, option="inference")
             else:
                 output = model(img_input)
-
+    
         # Separate predictions into separate variables
         out_boxlist = output[0]
         predicted_boxes = out_boxlist.bbox

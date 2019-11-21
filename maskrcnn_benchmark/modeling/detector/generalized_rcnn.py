@@ -49,9 +49,12 @@ class GeneralizedRCNN(nn.Module):
         images = to_image_list(images)
         #print("images:", images.tensors.size())
         features = self.backbone(images.tensors)
+        print("features:", features[0], features[0].shape)
         #for idx, f in enumerate(features):
         #    print("feature[{}]:".format(idx), f.size())
+
         proposals, proposal_losses = self.rpn(images, features, targets)
+        print("proposals:", proposals)
         #for idx, p in enumerate(proposals):
         #    print("proposal[{}]:".format(idx), p)
         if self.roi_heads:
@@ -66,6 +69,8 @@ class GeneralizedRCNN(nn.Module):
         #for idx, r in enumerate(result):
         #    print("result[{}]:".format(idx), r, r.get_field('labels'), r.get_field('scores'))
         #exit()
+
+        print("result:", result)
 
         if self.training:
             losses = {}

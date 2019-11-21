@@ -84,7 +84,7 @@ def build_backbone(cfg):
 # Build ResNet stem
 def build_resnet_stem(cfg):
     module = resnet.ResNet_Stem(cfg)
-    module = nn.Sequential(OrderedDict([("stem", module)]))
+    #module = nn.Sequential(OrderedDict([("stem", module)]))
     return module
 
 # Build a ResNet stage
