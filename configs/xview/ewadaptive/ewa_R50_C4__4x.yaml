@@ -33,6 +33,8 @@ MODEL:
     C3: [[1, 1]]
     C4: [[1, 1], [1, 2], [1, 3]]
     GENERATE_SELECTOR_GTS_BATCH_SIZE: 2
+    GENERATE_SELECTOR_GTS_PRE_NMS_TOP_N: 8000
+    GENERATE_SELECTOR_GTS_POST_NMS_TOP_N: 4000
 
 INPUT:
   MIN_SIZE_TRAIN: (600,)
@@ -42,7 +44,8 @@ INPUT:
   
 
 DATASETS:
-    TRAIN: ("xView_full_train",)
+    # TRAIN: ("xView_full_train",)
+    TRAIN: ("xView_full_train_mini",)
     TEST: ("xView_full_val",)
     #TRAIN: ("xView_simple_train_mini",)
     #TEST: ("xView_simple_val_mini",)
@@ -57,5 +60,6 @@ SOLVER:
 
 TEST:
   IMS_PER_BATCH: 8
+  DETECTIONS_PER_IMG: 1800
 
 OUTPUT_DIR: "./out/xview/ewadaptive/ewa_R50_C4"

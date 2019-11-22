@@ -13,6 +13,7 @@ import os
 import torch
 from maskrcnn_benchmark.config import cfg
 from maskrcnn_benchmark.data import make_data_loader
+from maskrcnn_benchmark.solver import make_optimizer
 from maskrcnn_benchmark.engine.inference import inference
 from maskrcnn_benchmark.modeling.detector import build_detection_model
 from maskrcnn_benchmark.utils.checkpoint import DetectronCheckpointer
@@ -31,38 +32,51 @@ except ImportError:
 #####################################################################
 ### Generate Selector GTs
 #####################################################################
+def create_gt_map(intermediate_features):
+    
+
+
 def generate_selector_gts(
     model,
     data_loader,
     device,
 ):
     model.train()
-    for iteration, (images, targets, idxs) in enumerate(data_loader, start_iter):
-        iteration = iteration + 1
+    print("Dataset length:", len(data_loader.dataset))
+    for iteration, (images, targets, idxs) in enumerate(data_loader, 0):
+        # Images and targets to device
         images = images.to(device)
         targets = [target.to(device) for target in targets]
         
-        # Forward batch thru model will 'all_branches' option
-        loss_dict = model(images, targets, option="all", adaptive_num=4)
+        # Forward batch thru model will 'single_stage_all' option
+        loss_dict, intermediate_features = model(images, targets, option="single_stage_all", adaptive_num=4)
 
+        # Sum losses
         losses = sum(loss for loss in loss_dict.values())
-
-        # reduce losses over all GPUs for logging purposes
-        loss_dict_reduced = reduce_loss_dict(loss_dict)
-        losses_reduced = sum(loss for loss in loss_dict_reduced.values())
 
         print("loss_dict:")
         for k, v in loss_dict.items():
             print(k, v)
         print("losses:", losses)
-        exit()
-        
-        # Note: If mixed precision is not used, this ends up doing nothing
-        # Otherwise apply loss scaling for mixed-precision recipe
-        with amp.scale_loss(losses, optimizer) as scaled_losses:
-            scaled_losses.backward()
 
-        #if iteration % 20 == 0 or iteration == max_iter:
+        # Backprop gradients; intermediate_features tensors .grad are now populated
+        losses.backward()
+
+        print(intermediate_features[0].shape, intermediate_features[1].shape, intermediate_features[2].shape)
+        print("gradients:")
+        print(intermediate_features[0].grad)
+
+        g = intermediate_features[0].grad[0]
+        #g = intermediate_features[0].grad
+        g = torch.abs(g)
+        g = torch.sum(g, dim=0)
+        print(g, g.min(), g.max(), g.shape)
+
+        # Craft GT selector map using intermediate_features gradients
+        gt_map = create_gt_map(intermediate_features)
+
+        exit()
+
 
 
 
@@ -103,6 +117,9 @@ def main():
 
     cfg.merge_from_file(args.config_file)
     cfg.merge_from_list(args.opts)
+    # To avoid CUDA out of memory, lower train top_n
+    cfg.MODEL.RPN.PRE_NMS_TOP_N_TRAIN = cfg.MODEL.EWADAPTIVE.GENERATE_SELECTOR_GTS_PRE_NMS_TOP_N
+    cfg.MODEL.RPN.POST_NMS_TOP_N_TRAIN = cfg.MODEL.EWADAPTIVE.GENERATE_SELECTOR_GTS_POST_NMS_TOP_N
     cfg.freeze()
 
     save_dir = ""
@@ -117,9 +134,8 @@ def main():
     model.to(cfg.MODEL.DEVICE)
     print(model)
 
-    # Initialize mixed-precision if necessary
-    use_mixed_precision = cfg.DTYPE == 'float16'
-    amp_handle = amp.init(enabled=use_mixed_precision, verbose=cfg.AMP_VERBOSE)
+    # Initialize optimizer
+    optimizer = make_optimizer(cfg, model)
 
     # Load checkpoint
     output_dir = cfg.OUTPUT_DIR
@@ -129,8 +145,7 @@ def main():
 
     
     # temp
-    #model.check_sync()
-    #exit()
+    model.check_sync()
 
     # Create data loader
     # Use train set, no horizontal/vertical flipping, must provide filename
@@ -138,8 +153,8 @@ def main():
 
     # For all adaptive stages, forward all training images with 'all', hook
     # gradients, generate binary GT maps, and save to disk for use later
-    generate_selector_gts(model, data_loader, device)
-):
+    generate_selector_gts(model, data_loader, cfg.MODEL.DEVICE)
+
 
 if __name__ == "__main__":
     main()

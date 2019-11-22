@@ -271,40 +271,75 @@ class EWAdaptiveRCNN(nn.Module):
         branch=1 (dilation=2).
         """
 
+        # Initialize losses dict
+        losses = {}
+
         # Create stage lists
         selected_adaptive_stage = "C" + str(adaptive_num)
-        before_stages = ["C" + str(i) for i in range(1, adaptive_num)]
-        after_stages = ["C" + str(i) for i in range(adaptive_num, self.num_stages + 1)]
+        before_stages = ["C" + str(i) for i in range(2, adaptive_num)]
+        after_stages = ["C" + str(i) for i in range(adaptive_num + 1, self.num_stages + 1)]
 
         print("selected_adaptive_stage:", selected_adaptive_stage)
         print("before_stages:", before_stages)
         print("after_stages:", after_stages)
        
-        exit()
 
         # Convert images input to image_list (if it isnt already)
         images = to_image_list(images)
+        #print(images.tensors.shape)
+        #exit()
 
         # Forward pass thru stem (as this is never adaptive)
         features = self.C1(images.tensors)
 
-        # 
+        # Forward thru stages before adaptive stage C<adaptive_num>
+        for stage_name in before_stages:
+            print("forwarding thru ", stage_name)
+            if stage_name in self.adaptive_stages:
+                features = getattr(self, stage_name)(features, branch=1)
+            else:
+                features = getattr(self, stage_name)(features, branch=0)
+        before_features = features
 
-        features_c2 = self.C2(features_c1, branch=1)
-        features_c3 = self.C3(features_c2, branch=1)
-        features = [self.C4(features_c3, branch=1)] 
+        # At this point, we're at the adaptive stage we care about
+        # Forward all branches of this stage to loss
+        intermediate_features = []
+        num_branches = len(getattr(self, selected_adaptive_stage).branches)
+        for curr_branch_idx in range(num_branches):
+            print("Starting second phase, branch:", curr_branch_idx)
+            # Forward thru selected adaptive branch
+            features = getattr(self, selected_adaptive_stage)(before_features, branch=curr_branch_idx)
+            features.retain_grad()
+            # Store intermediate features to list to return later
+            intermediate_features.append(features)
+            # Iterate over after_stages
+            for stage_name in after_stages:
+                print("forwarding thru ", stage_name)
+                if stage_name in self.adaptive_stages:
+                    features = getattr(self, stage_name)(features, branch=1)
+                else:
+                    features = getattr(self, stage_name)(features, branch=0)
 
-        # Forward thru RPN
-        proposals, proposal_losses = self.rpn(images, features, targets=None)
+            # Enclose features in list
+            features = [features]
 
-        # Forward thru RoI heads
-        if self.roi_heads:
-            x, result, detector_losses = self.roi_heads(features, proposals, targets=None)
-        else:
-            # RPN-only models don't have roi_heads
-            x = features
-            result = proposals
-            detector_losses = {}
+            # Forward thru RPN
+            proposals, proposal_losses = self.rpn(images, features, targets)
+
+            # Forward thru RoI heads
+            if self.roi_heads:
+                x, result, detector_losses = self.roi_heads(features, proposals, targets)
+            else:
+                # RPN-only models don't have roi_heads
+                x = features
+                result = proposals
+                detector_losses = {}
+
+            # Add losses from this branch
+            for k, v in proposal_losses.items():
+                losses[k+str(curr_branch_idx)] = v
+            for k, v in detector_losses.items():
+                losses[k+str(curr_branch_idx)] = v
 
         
-        return result
+        return losses, intermediate_features
