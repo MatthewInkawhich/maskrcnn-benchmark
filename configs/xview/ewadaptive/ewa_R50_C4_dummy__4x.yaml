@@ -1,0 +1,61 @@
+MODEL:
+  META_ARCHITECTURE: "EWAdaptiveRCNN"
+  BACKBONE:
+    CONV_BODY: "R-50-C4"
+  WEIGHT: "catalog://ImageNetPretrained/MSRA/R-50"
+  RPN:
+    USE_FPN: False
+    ANCHOR_SIZES: (16, 32, 64, 128, 256, 512)
+    #ANCHOR_STRIDE: (16,)
+    #ANCHOR_STRIDE: (8,)
+    ANCHOR_STRIDE: (4,)
+    ASPECT_RATIOS: (0.5, 1.0, 2.0)
+    BATCH_SIZE_PER_IMAGE: 256
+    PRE_NMS_TOP_N_TRAIN: 40000
+    PRE_NMS_TOP_N_TEST: 20000
+    POST_NMS_TOP_N_TRAIN: 8000
+    POST_NMS_TOP_N_TEST: 4000
+  ROI_HEADS:
+    USE_FPN: False
+    BATCH_SIZE_PER_IMAGE: 512
+    DETECTIONS_PER_IMG: 1800
+  ROI_BOX_HEAD:
+    FEATURE_EXTRACTOR: "ResNet50Conv5ROIFeatureExtractor"
+    PREDICTOR: "FastRCNNPredictor"
+    POOLER_RESOLUTION: 14
+    #POOLER_SCALES: (0.0625,)  # 1 / 16
+    #POOLER_SCALES: (0.125,)  # 1 / 8
+    POOLER_SCALES: (0.25,)      # 1 / 4
+    NUM_CLASSES: 61
+    #NUM_CLASSES: 8
+  EWADAPTIVE:
+    C2: [[1, 1]]
+    C3: [[1, 1]]
+    C4: [[1, 1], [1, 2], [1, 3]]
+    GENERATE_SELECTOR_GTS_BATCH_SIZE: 2
+
+INPUT:
+  MIN_SIZE_TRAIN: (600,)
+  MAX_SIZE_TRAIN: 600
+  MIN_SIZE_TEST: 600
+  MAX_SIZE_TEST: 600
+  
+
+DATASETS:
+    TRAIN: ("xView_full_train",)
+    TEST: ("xView_full_val",)
+    #TRAIN: ("xView_simple_train_mini",)
+    #TEST: ("xView_simple_val_mini",)
+
+SOLVER:
+  BASE_LR: 0.01
+  WEIGHT_DECAY: 0.0001
+  STEPS: (60000, 100000)
+  MAX_ITER: 110000
+  IMS_PER_BATCH: 8
+  CHECKPOINT_PERIOD: 5000
+
+TEST:
+  IMS_PER_BATCH: 8
+
+OUTPUT_DIR: "./out/xview/ewadaptive/ewa_R50_C4_dummy"

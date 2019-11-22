@@ -196,17 +196,18 @@ class ResNet(nn.Module):
 
         # Set strides according to cfg.RPN.ANCHOR_STRIDE
         # NOTE: this is only valid for ResNet__StagesTo4
-        if cfg.MODEL.RPN.ANCHOR_STRIDE[0] == 4:
-            strides = [1, 1, 1]
-        elif cfg.MODEL.RPN.ANCHOR_STRIDE[0] == 8:
-            strides = [1, 2, 1]
-        elif cfg.MODEL.RPN.ANCHOR_STRIDE[0] == 16:
-            strides = [1, 2, 2]
-        elif cfg.MODEL.RPN.ANCHOR_STRIDE[0] == 24:
-            strides = [1, 2, 3]
-        else:
-            print("ERROR: Invalid cfg.MODEL.RPN.ANCHOR_STRIDE setting:", cfg.MODEL.RPN.ANCHOR_STRIDE)
-            exit()
+        if not cfg.MODEL.RPN.USE_FPN:
+            if cfg.MODEL.RPN.ANCHOR_STRIDE[0] == 4:
+                strides = [1, 1, 1]
+            elif cfg.MODEL.RPN.ANCHOR_STRIDE[0] == 8:
+                strides = [1, 2, 1]
+            elif cfg.MODEL.RPN.ANCHOR_STRIDE[0] == 16:
+                strides = [1, 2, 2]
+            elif cfg.MODEL.RPN.ANCHOR_STRIDE[0] == 24:
+                strides = [1, 2, 3]
+            else:
+                print("ERROR: Invalid cfg.MODEL.RPN.ANCHOR_STRIDE setting:", cfg.MODEL.RPN.ANCHOR_STRIDE)
+                exit()
 
         # Check to make sure the cfg.MODEL.RESNETS.DILATIONS length
         # matches the stage_specs length
@@ -237,6 +238,14 @@ class ResNet(nn.Module):
             if name in cfg.MODEL.DONT_LOAD:
                 use_unfixed_bn = True
 
+            if cfg.MODEL.RPN.USE_FPN:
+                first_stride = int(stage_spec.index > 1) + 1
+                dilation = 1
+            else:
+                first_stride = strides[stage_idx]
+                dilation = cfg.MODEL.RESNETS.DILATIONS[stage_idx] # Choose stride based on ANCHOR_STRIDE
+
+
             module = _make_stage(
                 transformation_module,
                 in_channels,
@@ -245,8 +254,8 @@ class ResNet(nn.Module):
                 stage_spec.block_count,
                 num_groups,
                 cfg.MODEL.RESNETS.STRIDE_IN_1X1,
-                first_stride=strides[stage_idx],  # Choose stride based on ANCHOR_STRIDE
-                dilation=cfg.MODEL.RESNETS.DILATIONS[stage_idx],
+                first_stride=first_stride, 
+                dilation=dilation,
                 dcn_config={
                     "stage_with_dcn": stage_with_dcn,
                     "with_modulated_dcn": cfg.MODEL.RESNETS.WITH_MODULATED_DCN,

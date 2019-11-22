@@ -206,6 +206,9 @@ def do_pretrain_ewadaptive(
         else:
             model.sync_weights()
 
+
+        # Temp: check that models are synced across processes by printing
+        #print("Rank:", get_rank(), model.state_dict()['module.C4.branch2.3.conv1.weight'])
         
         #model.module.check_sync()
         #exit()
