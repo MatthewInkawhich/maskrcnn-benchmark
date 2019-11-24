@@ -9,6 +9,11 @@ from maskrcnn_benchmark.utils.env import setup_environment  # noqa F401 isort:sk
 
 import argparse
 import os
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
+from PIL import Image
 
 import torch
 from maskrcnn_benchmark.config import cfg
@@ -30,17 +35,96 @@ except ImportError:
 
 
 #####################################################################
+### Helpers
+#####################################################################
+def plot_image_and_gt(img, gt, num_branches, blend=True):
+    # Define colors to use
+    colors = [[255, 0, 0], [0, 255, 0], [0, 0, 255], [255, 255, 0]]
+    # Normalize, permute channel dims and convert BGR --> RGB
+    img = (img - img.min()) / (img.max() - img.min())
+    img *= 255
+    img = img.permute(1, 2, 0)[:,:,[2,1,0]].to(torch.uint8).cpu().numpy()
+
+    # Create gt_img
+    gt_img_R = torch.zeros((gt.size(0), gt.size(1)))
+    gt_img_G = torch.zeros((gt.size(0), gt.size(1)))
+    gt_img_B = torch.zeros((gt.size(0), gt.size(1)))
+    for branch in range(num_branches):
+        mask = torch.eq(gt, branch)
+        gt_img_R[mask] = colors[branch][0]
+        gt_img_G[mask] = colors[branch][1]
+        gt_img_B[mask] = colors[branch][2]
+
+    gt_img = torch.stack([gt_img_R, gt_img_G, gt_img_B]).permute(1, 2, 0).to(torch.uint8).cpu().numpy()
+
+    # Plot
+    if blend:
+        # Resize gt_img to same size as img
+        gt_img = cv2.resize(gt_img, dsize=(img.shape[0], img.shape[1]), interpolation=cv2.INTER_NEAREST)
+        # Create PIL Images
+        gt_img_PIL = Image.fromarray(gt_img)
+        img_PIL = Image.fromarray(img)
+        # Blend
+        blended_img = Image.blend(img_PIL, gt_img_PIL, alpha=0.75)
+        plt.imshow(blended_img)
+        plt.show()
+
+    else:
+        plt.figure(figsize=(10.8, 4.8))
+        plt.subplot(121)
+        plt.title("Image")
+        plt.imshow(img)
+
+        colors_normalized = (np.array(colors) / 255).tolist()
+        legend_elements = [Patch(facecolor=tuple(colors_normalized[0]), edgecolor=tuple(colors_normalized[0]), label="D=1"),
+                           Patch(facecolor=tuple(colors_normalized[1]), edgecolor=tuple(colors_normalized[1]), label="D=2"),
+                           Patch(facecolor=tuple(colors_normalized[2]), edgecolor=tuple(colors_normalized[2]), label="D=3")]
+        plt.subplot(122)
+        plt.title("Dilation Map")
+        plt.legend(handles=legend_elements, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+        plt.imshow(gt_img)
+
+    plt.show()
+        
+
+
+
+
+#####################################################################
 ### Generate Selector GTs
 #####################################################################
 def create_gt_map(intermediate_features):
+    """
+    This function takes a list intermediate_features, and uses magnitude
+    of gradients to create a GT map for what branch is the best at each
+    spatial location. Returns mask for each input in batch.
+    """
+    # Get gradients
+    g = [a.grad for a in intermediate_features]
+    # Stack tensor list into one tensor with size=[N x B X C x H x W]
+    g = torch.stack(g).permute(1, 0, 2, 3, 4)
+    #print("intermediate_grads:", g.shape)
+    # Get sum of gradient magnitudes
+    g = torch.abs(g)
+    g = torch.sum(g, dim=2)
+    # Here, g.shape=[N x B x H x W]
+    #print("g:", g, g.shape)
+    # Get element-wise min over branch (B) axis
+    min_values, _ = torch.min(g, dim=1)
+    #print("min_values:", min_values, min_values.shape)
+    # Find all locations where B=1 element == min value at this position
+    tiebreak_mask = torch.eq(g[:, 1, :, :], min_values)
+    #print("tiebreak_mask:", tiebreak_mask, tiebreak_mask.shape)
+    # Subtract 1 from B=1 element at the tiebreak locations
+    g[:, 1, :, :][tiebreak_mask] -= 1.0
+    #print("new g:", g, g.shape)
+    # Take element-wise min over branch (B) axis again
+    _, min_indices = torch.min(g, dim=1)
+    #print("min_indices:", min_indices, min_indices.shape)
+    return min_indices.to(torch.uint8)
     
 
-
-def generate_selector_gts(
-    model,
-    data_loader,
-    device,
-):
+def generate_selector_gts(model, data_loader, device):
     model.train()
     print("Dataset length:", len(data_loader.dataset))
     for iteration, (images, targets, idxs) in enumerate(data_loader, 0):
@@ -54,26 +138,36 @@ def generate_selector_gts(
         # Sum losses
         losses = sum(loss for loss in loss_dict.values())
 
-        print("loss_dict:")
-        for k, v in loss_dict.items():
-            print(k, v)
-        print("losses:", losses)
+        #print("loss_dict:")
+        #for k, v in loss_dict.items():
+        #    print(k, v)
+        #print("losses:", losses)
 
         # Backprop gradients; intermediate_features tensors .grad are now populated
         losses.backward()
 
-        print(intermediate_features[0].shape, intermediate_features[1].shape, intermediate_features[2].shape)
-        print("gradients:")
-        print(intermediate_features[0].grad)
-
-        g = intermediate_features[0].grad[0]
-        #g = intermediate_features[0].grad
-        g = torch.abs(g)
-        g = torch.sum(g, dim=0)
-        print(g, g.min(), g.max(), g.shape)
-
         # Craft GT selector map using intermediate_features gradients
         gt_map = create_gt_map(intermediate_features)
+
+        #print("gt_map:", gt_map, gt_map.shape, gt_map.dtype)
+        num_branches = len(intermediate_features)
+        print("num_branches:", num_branches)
+        # Iterate over batch
+        for batch_idx in range(gt_map.size(0)):
+            img = images.tensors[batch_idx]
+            gt = gt_map[batch_idx]
+            print("img:", img.shape)
+            print("gt:", gt.shape)
+            
+            # Count number of each choice
+            print("Counts:")
+            for j in range(num_branches):
+                c = gt[gt == j].shape[0]
+                print("c"+str(j), c)
+
+            # Plot image with GT mask 
+            plot_image_and_gt(img, gt, num_branches, blend=False)
+
 
         exit()
 
