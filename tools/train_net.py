@@ -33,7 +33,7 @@ except ImportError:
     raise ImportError('Use APEX for multi-precision via apex.amp')
 
 
-def train(cfg, local_rank, distributed, empty_cache=False):
+def train(cfg, local_rank, distributed, primer="", empty_cache=False):
     model = build_detection_model(cfg)
     if get_rank() == 0:
         print(model)
@@ -70,9 +70,15 @@ def train(cfg, local_rank, distributed, empty_cache=False):
         cfg, model, optimizer, scheduler, output_dir, save_to_disk
     )
 
+
     # Load pretrained base network weights
     if cfg.MODEL.META_ARCHITECTURE == "EWAdaptiveRCNN":
-        extra_checkpoint_data = checkpointer.load(cfg.MODEL.WEIGHT, dont_load=cfg.MODEL.DONT_LOAD, branch_counts=[len(cfg.MODEL.EWADAPTIVE.C2), len(cfg.MODEL.EWADAPTIVE.C3), len(cfg.MODEL.EWADAPTIVE.C4)])
+        if primer:
+            print("Using primer:", primer)
+            extra_checkpoint_data = checkpointer.load(primer, dont_load=cfg.MODEL.DONT_LOAD, branch_counts=[len(cfg.MODEL.EWADAPTIVE.C2), len(cfg.MODEL.EWADAPTIVE.C3), len(cfg.MODEL.EWADAPTIVE.C4)], primer=True)
+        else:
+            checkpoint_weight = cfg.MODEL.WEIGHT
+            extra_checkpoint_data = checkpointer.load(cfg.MODEL.WEIGHT, dont_load=cfg.MODEL.DONT_LOAD, branch_counts=[len(cfg.MODEL.EWADAPTIVE.C2), len(cfg.MODEL.EWADAPTIVE.C3), len(cfg.MODEL.EWADAPTIVE.C4)])
     else:
         extra_checkpoint_data = checkpointer.load(cfg.MODEL.WEIGHT, dont_load=cfg.MODEL.DONT_LOAD)
     #exit()
@@ -174,6 +180,11 @@ def main():
         action="store_true",
     )
     parser.add_argument(
+        "--primer",
+        help="Pretrain model with primer model",
+        default=None,
+    )
+    parser.add_argument(
         "opts",
         help="Modify config options using the command-line",
         default=None,
@@ -218,7 +229,7 @@ def main():
     # save overloaded model config in the output directory
     save_config(cfg, output_config_path)
 
-    model = train(cfg, args.local_rank, args.distributed, empty_cache=args.empty_cache)
+    model = train(cfg, args.local_rank, args.distributed, primer=args.primer, empty_cache=args.empty_cache)
 
     if not args.skip_test:
         run_test(cfg, model, args.distributed)

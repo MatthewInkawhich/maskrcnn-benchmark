@@ -11,6 +11,8 @@ import argparse
 import os
 import cv2
 import numpy as np
+#import matplotlib
+#matplotlib.use('tkagg')
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
 from PIL import Image
@@ -67,7 +69,6 @@ def plot_image_and_gt(img, gt, num_branches, blend=True):
         # Blend
         blended_img = Image.blend(img_PIL, gt_img_PIL, alpha=0.75)
         plt.imshow(blended_img)
-        plt.show()
 
     else:
         plt.figure(figsize=(10.8, 4.8))
@@ -93,7 +94,7 @@ def plot_image_and_gt(img, gt, num_branches, blend=True):
 #####################################################################
 ### Generate Selector GTs
 #####################################################################
-def create_gt_map(intermediate_features):
+def create_gt_map_grad(intermediate_features):
     """
     This function takes a list intermediate_features, and uses magnitude
     of gradients to create a GT map for what branch is the best at each
@@ -122,6 +123,33 @@ def create_gt_map(intermediate_features):
     _, min_indices = torch.min(g, dim=1)
     #print("min_indices:", min_indices, min_indices.shape)
     return min_indices.to(torch.uint8)
+
+def create_gt_map_activation(intermediate_features):
+    """
+    This function takes a list intermediate_features, and uses magnitude
+    of gradients to create a GT map for what branch is the best at each
+    spatial location. Returns mask for each input in batch.
+    """
+    # Stack tensor list into one tensor with size=[N x B X C x H x W]
+    g = torch.stack(intermediate_features).permute(1, 0, 2, 3, 4)
+    # Get sum of activation magnitudes
+    g = torch.abs(g)
+    g = torch.sum(g, dim=2)
+    #g, _ = torch.max(g, dim=2)
+    # Here, g.shape=[N x B x H x W]
+    # Get element-wise min over branch (B) axis
+    max_values, _ = torch.max(g, dim=1)
+    #print("min_values:", min_values, min_values.shape)
+    # Find all locations where B=1 element == min value at this position
+    tiebreak_mask = torch.eq(g[:, 1, :, :], max_values)
+    #print("tiebreak_mask:", tiebreak_mask, tiebreak_mask.shape)
+    # Subtract 1 from B=1 element at the tiebreak locations
+    g[:, 1, :, :][tiebreak_mask] += 1.0
+    #print("new g:", g, g.shape)
+    # Take element-wise min over branch (B) axis again
+    _, max_indices = torch.max(g, dim=1)
+    #print("min_indices:", min_indices, min_indices.shape)
+    return max_indices.to(torch.uint8)
     
 
 def generate_selector_gts(model, data_loader, device):
@@ -131,6 +159,9 @@ def generate_selector_gts(model, data_loader, device):
         # Images and targets to device
         images = images.to(device)
         targets = [target.to(device) for target in targets]
+
+        # Zero grads
+        model.zero_grad()
         
         # Forward batch thru model will 'single_stage_all' option
         loss_dict, intermediate_features = model(images, targets, option="single_stage_all", adaptive_num=4)
@@ -138,16 +169,18 @@ def generate_selector_gts(model, data_loader, device):
         # Sum losses
         losses = sum(loss for loss in loss_dict.values())
 
-        #print("loss_dict:")
-        #for k, v in loss_dict.items():
-        #    print(k, v)
-        #print("losses:", losses)
+        print("idxs:", idxs)
+        print("loss_dict:")
+        for k, v in loss_dict.items():
+            print(k, v)
+        print("losses:", losses)
 
         # Backprop gradients; intermediate_features tensors .grad are now populated
         losses.backward()
 
         # Craft GT selector map using intermediate_features gradients
-        gt_map = create_gt_map(intermediate_features)
+        gt_map = create_gt_map_grad(intermediate_features)
+        #gt_map = create_gt_map_activation(intermediate_features)
 
         #print("gt_map:", gt_map, gt_map.shape, gt_map.dtype)
         num_branches = len(intermediate_features)
@@ -169,7 +202,7 @@ def generate_selector_gts(model, data_loader, device):
             plot_image_and_gt(img, gt, num_branches, blend=False)
 
 
-        exit()
+        #exit()
 
 
 

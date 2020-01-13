@@ -26,6 +26,11 @@ def main():
         metavar="logpath",
         type=str
     )
+    parser.add_argument(
+        "title",
+        metavar="title",
+        type=str
+    )
     args = parser.parse_args()
 
     # Read file into list of lines
@@ -49,7 +54,8 @@ def main():
 
     # Plot loss vs iter
     plt.plot(iters, losses)
-    plt.title("Training: {}".format(args.logpath))
+    #plt.title("Training: {}".format(args.logpath))
+    plt.title("Training Loss: {}".format(args.title))
     plt.xlabel("Iter")
     plt.ylabel("Loss")
     plt.show()

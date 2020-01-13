@@ -21,6 +21,13 @@
 #echo "^C4"
 #python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/xview/ewadaptive/ewa_R50_C3C4__4x.yaml" --ckpt "out/xview/ewadaptive/ewa_R50_C3C4/model_pretrain_final.pth"
 #echo "^C3C4"
-python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/xview/ewadaptive/ewa_R50_control__4x.yaml" --ckpt "out/xview/ewadaptive/ewa_R50_control/model_pretrain_final.pth"
+
+python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/xview/ewadaptive/ewa_R50_C2C3C4__4x.yaml" --ckpt "out/xview/ewadaptive/ewa_R50_C2C3C4/model_pretrain_final.pth"
+
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/xview/ewadaptive/ewa_R50_control__4x.yaml" --ckpt "out/xview/ewadaptive/ewa_R50_control/model_pretrain_final.pth"
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/xview/ewadaptive/ewa_R50_primer__4x.yaml" --ckpt "out/xview/ewadaptive/ewa_R50_primer/model_pretrain_final.pth"
+
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/xview/ewadaptive/ewa_R50_C4_primed__4x.yaml" --ckpt "out/xview/ewadaptive/ewa_R50_C4_primed/model_pretrain_final.pth"
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/xview/ewadaptive/ewa_R50_C3C4_primed__4x.yaml" --ckpt "out/xview/ewadaptive/ewa_R50_C3C4_primed/model_pretrain_final.pth"
 
 #python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/xview/faster_R50_C4_dummy__4x.yaml"

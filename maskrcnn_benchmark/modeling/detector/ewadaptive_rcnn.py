@@ -170,8 +170,8 @@ class EWAdaptiveRCNN(nn.Module):
         ### Process image data with stages
         features_C1 = self.C1(images.tensors)
         features_C2 = self.C2(features_C1, branch=0)
-        features_C3 = self.C3(features_C2, branch=0)
-        features_C4 = self.C4(features_C3, branch=0)
+        features_C3 = self.C3(features_C2, branch=1)
+        features_C4 = self.C4(features_C3, branch=1)
 
         features = [features_C4]
         #print("features_C1:", features_C1, features_C1.shape)

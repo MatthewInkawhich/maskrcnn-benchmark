@@ -77,8 +77,8 @@ def strip_prefix_if_present(state_dict, prefix):
     return stripped_state_dict
 
 
-# Use this to create a loadable state dict for the ILAdaptive model
-def prep_for_iladaptive_model(loaded_state_dict, branch_counts):
+# Use this to create a loadable state dict for the EWAdaptive model
+def prep_for_ewadaptive_model(loaded_state_dict, branch_counts):
     new_state_dict = {}
     for k, v in loaded_state_dict.items():
         found = False
@@ -93,7 +93,22 @@ def prep_for_iladaptive_model(loaded_state_dict, branch_counts):
     return new_state_dict
 
 
-def load_state_dict(model, loaded_state_dict, dont_load=[], branch_counts=[]):
+# Use this to add other branches to a primer model's state dict
+def prep_primed_state_dict(loaded_state_dict, branch_counts):
+    new_state_dict = {}
+    for k, v in loaded_state_dict.items():
+        new_state_dict[k] = v
+        for i in range(2, 2+len(branch_counts)):
+            if "C"+str(i) in k:
+                for b in range(1, branch_counts[i-2]):
+                    new_key = k.replace("branch0", "branch"+str(b))
+                    new_state_dict[new_key] = v
+
+    return new_state_dict
+
+
+
+def load_state_dict(model, loaded_state_dict, dont_load=[], branch_counts=[], primer=False):
     # Create a record of the default model state dict so we can use strict loading later
     model_state_dict = model.state_dict()
     # if the state_dict comes from a model that was wrapped in a
@@ -104,7 +119,10 @@ def load_state_dict(model, loaded_state_dict, dont_load=[], branch_counts=[]):
     # If branch_counts arg is set
     if branch_counts:
         assert(len(branch_counts) == 3, "Error: length of branch_counts must == 3")
-        loaded_state_dict = prep_for_iladaptive_model(loaded_state_dict, branch_counts)
+        if primer:
+            loaded_state_dict = prep_primed_state_dict(loaded_state_dict, branch_counts)
+        else:
+            loaded_state_dict = prep_for_ewadaptive_model(loaded_state_dict, branch_counts)
 
     align_and_update_state_dicts(model_state_dict, loaded_state_dict, dont_load)
 

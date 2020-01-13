@@ -96,10 +96,20 @@ def main():
     XVIEW = True
     PLOT_GT = False
     PLOT_PREDICTIONS = True
-    TEXT = False
+    TEXT = True
+    SAVE = True
 
     # Set paths
     if XVIEW:
+        # Dilation
+        #CONFIG_FILE_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'configs', 'xview', 'faster_R101_C4_stride16__4x.yaml')
+        #OUT_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'out', 'xview', 'faster_R101_C4_stride16')
+        #CHECKPOINT_PATH = os.path.join(OUT_PATH, 'model_final.pth')
+        #CONFIG_FILE_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'configs', 'xview', 'faster_R101_C4_dilation3__4x.yaml')
+        #OUT_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'out', 'xview', 'faster_R101_C4_dilation3')
+        #CHECKPOINT_PATH = os.path.join(OUT_PATH, 'model_final.pth')
+
+
         #CONFIG_FILE_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'configs', 'xview', 'faster_R101_C4_stride16__4x.yaml')
         #OUT_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'out', 'xview', 'faster_R101_C4_stride16')
         #CHECKPOINT_PATH = os.path.join(OUT_PATH, 'model_final.pth')
@@ -112,9 +122,13 @@ def main():
         LABEL_PATH = os.path.join(OUT_PATH, 'labels.json')
         DATA_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'datasets', 'xView-coco-600')
         ANNOTATION_PATH = os.path.join(DATA_PATH, 'annotations', 'val_full.json')
-        IMAGE_PATH = os.path.join(DATA_PATH, 'val_images', 'img_97_14_rot0.jpg')
+
+
+        # Image
+        #IMAGE_PATH = os.path.join(DATA_PATH, 'val_images', 'img_97_14_rot0.jpg')
         #IMAGE_PATH = os.path.join(DATA_PATH, 'val_images', 'img_322_30_rot0.jpg')
-        DRAW_THRESH = 0.6
+        IMAGE_PATH = os.path.join(DATA_PATH, 'val_images', 'img_1906_13_rot0.jpg')
+        DRAW_THRESH = 0.5
     else: # COCO
         CONFIG_FILE_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'configs', 'coco', 'faster_R101_C4_vanilla__4x.yaml')
         OUT_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'out', 'coco', 'faster_R101_vanilla')
@@ -123,7 +137,7 @@ def main():
         DATA_PATH = os.path.join(os.path.expanduser('~'), 'WORK', 'maskrcnn-benchmark', 'datasets', 'coco')
         ANNOTATION_PATH = os.path.join(DATA_PATH, 'annotations', 'instances_val2017.json')
         IMAGE_PATH = os.path.join(DATA_PATH, 'val2017', '000000000139.jpg')
-        DRAW_THRESH = 0.6
+        DRAW_THRESH = 0.5
 
 
 
@@ -207,6 +221,12 @@ def main():
 
     # Show image
     plt.imshow(pil_img_draw)
+    
+    if SAVE:
+        orig_name = IMAGE_PATH.split('/')[-1].split('.')[0]
+        model_tag = OUT_PATH.split('/')[-1]
+        plt.savefig('../../saved_plots/' + orig_name + '_' + model_tag + '.pdf')
+
     plt.show()
 
 

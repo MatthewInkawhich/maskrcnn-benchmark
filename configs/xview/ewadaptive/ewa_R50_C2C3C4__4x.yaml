@@ -2,6 +2,7 @@ MODEL:
   META_ARCHITECTURE: "EWAdaptiveRCNN"
   BACKBONE:
     CONV_BODY: "R-50-C4"
+    FREEZE_CONV_BODY_AT: 1  # Don't freeze stage 2
   WEIGHT: "catalog://ImageNetPretrained/MSRA/R-50"
   RPN:
     USE_FPN: False
@@ -29,10 +30,12 @@ MODEL:
     NUM_CLASSES: 61
     #NUM_CLASSES: 8
   EWADAPTIVE:
-    C2: [[1, 1]]
-    C3: [[1, 1]]
-    C4: [[1, 1]]
+    C2: [[1, 1], [1, 2], [1, 3]]
+    C3: [[1, 1], [1, 2], [1, 3]]
+    C4: [[1, 1], [1, 2], [1, 3]]
     GENERATE_SELECTOR_GTS_BATCH_SIZE: 2
+    GENERATE_SELECTOR_GTS_PRE_NMS_TOP_N: 8000
+    GENERATE_SELECTOR_GTS_POST_NMS_TOP_N: 4000
 
 INPUT:
   MIN_SIZE_TRAIN: (600,)
@@ -59,4 +62,4 @@ TEST:
   IMS_PER_BATCH: 8
   DETECTIONS_PER_IMG: 1800
 
-OUTPUT_DIR: "./out/xview/ewadaptive/ewa_R50_primer"
+OUTPUT_DIR: "./out/xview/ewadaptive/ewa_R50_C2C3C4"
