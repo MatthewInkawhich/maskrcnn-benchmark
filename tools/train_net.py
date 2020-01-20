@@ -81,6 +81,7 @@ def train(cfg, local_rank, distributed, primer="", empty_cache=False):
             extra_checkpoint_data = checkpointer.load(cfg.MODEL.WEIGHT, dont_load=cfg.MODEL.DONT_LOAD, branch_counts=[len(cfg.MODEL.EWADAPTIVE.C2), len(cfg.MODEL.EWADAPTIVE.C3), len(cfg.MODEL.EWADAPTIVE.C4)])
     else:
         extra_checkpoint_data = checkpointer.load(cfg.MODEL.WEIGHT, dont_load=cfg.MODEL.DONT_LOAD)
+
     #exit()
 
     arguments.update(extra_checkpoint_data)

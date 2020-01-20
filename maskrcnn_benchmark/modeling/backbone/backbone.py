@@ -8,15 +8,36 @@ from maskrcnn_benchmark.modeling.make_layers import conv_with_kaiming_uniform
 from . import fpn as fpn_module
 from . import resnet
 from . import selector
+from . import resreg
 
 
 @registry.BACKBONES.register("R-50-C4")
 @registry.BACKBONES.register("R-50-C5")
 @registry.BACKBONES.register("R-101-C4")
 @registry.BACKBONES.register("R-101-C5")
+@registry.BACKBONES.register("R-50-3_4_2")
+@registry.BACKBONES.register("R-50-3_4_8")
+@registry.BACKBONES.register("R-50-3_4_14")
+@registry.BACKBONES.register("R-50-3_4_20")
 def build_resnet_backbone(cfg):
     body = resnet.ResNet(cfg)
-    model = nn.Sequential(OrderedDict([("body", body)]))
+    if cfg.MODEL.BACKBONE.RESREG == 4:
+        rr = resreg.Up4x(cfg)
+        model = nn.Sequential(OrderedDict([("body", body), ("resreg", rr)]))
+    elif cfg.MODEL.BACKBONE.RESREG == 2:
+        rr = resreg.Up2x(cfg)
+        model = nn.Sequential(OrderedDict([("body", body), ("resreg", rr)]))
+    elif cfg.MODEL.BACKBONE.RESREG == -2:
+        rr = resreg.Down2x(cfg)
+        model = nn.Sequential(OrderedDict([("body", body), ("resreg", rr)]))
+    elif cfg.MODEL.BACKBONE.RESREG == 1:
+        rr = resreg.Keep1x(cfg)
+        model = nn.Sequential(OrderedDict([("body", body), ("resreg", rr)]))
+    elif cfg.MODEL.BACKBONE.RESREG == 0:
+        model = nn.Sequential(OrderedDict([("body", body)]))
+    else:
+        print("Invalid cfg.MODEL.BACKBONE.RESREG value")
+        exit()
     model.out_channels = cfg.MODEL.RESNETS.BACKBONE_OUT_CHANNELS
     return model
 

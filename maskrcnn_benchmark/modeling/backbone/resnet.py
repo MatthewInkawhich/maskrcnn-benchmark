@@ -78,6 +78,29 @@ ResNet152FPNStagesTo5 = tuple(
     for (i, c, r) in ((1, 3, True), (2, 8, True), (3, 36, True), (4, 3, True))
 )
 
+# -----------------------------------------------------------------------------
+# Custom ResNet models
+# -----------------------------------------------------------------------------
+ResNet50_3_4_2 = tuple(
+    StageSpec(index=i, block_count=c, return_features=r)
+    for (i, c, r) in ((1, 3, False), (2, 4, False), (3, 2, True))
+)
+
+ResNet50_3_4_8 = tuple(
+    StageSpec(index=i, block_count=c, return_features=r)
+    for (i, c, r) in ((1, 3, False), (2, 4, False), (3, 8, True))
+)
+
+ResNet50_3_4_14 = tuple(
+    StageSpec(index=i, block_count=c, return_features=r)
+    for (i, c, r) in ((1, 3, False), (2, 4, False), (3, 14, True))
+)
+
+ResNet50_3_4_20 = tuple(
+    StageSpec(index=i, block_count=c, return_features=r)
+    for (i, c, r) in ((1, 3, False), (2, 4, False), (3, 20, True))
+)
+
 
 ################################################################################
 ### ResNet Stage
@@ -196,15 +219,15 @@ class ResNet(nn.Module):
 
         # Set strides according to cfg.RPN.ANCHOR_STRIDE
         # NOTE: this is only valid for ResNet__StagesTo4
-        if not cfg.MODEL.RPN.USE_FPN:
+        if not cfg.MODEL.RPN.USE_FPN and cfg.MODEL.BACKBONE.RESREG == 0:
             if cfg.MODEL.RPN.ANCHOR_STRIDE[0] == 4:
                 strides = [1, 1, 1]
             elif cfg.MODEL.RPN.ANCHOR_STRIDE[0] == 8:
-                strides = [1, 2, 1]
+                strides = [1, 1, 2]
             elif cfg.MODEL.RPN.ANCHOR_STRIDE[0] == 16:
                 strides = [1, 2, 2]
-            elif cfg.MODEL.RPN.ANCHOR_STRIDE[0] == 24:
-                strides = [1, 2, 3]
+            elif cfg.MODEL.RPN.ANCHOR_STRIDE[0] == 32:
+                strides = [2, 2, 2]
             else:
                 print("ERROR: Invalid cfg.MODEL.RPN.ANCHOR_STRIDE setting:", cfg.MODEL.RPN.ANCHOR_STRIDE)
                 exit()
@@ -235,10 +258,10 @@ class ResNet(nn.Module):
             assert(len(middle_ks) == stage_spec.block_count), "Length of middle_ks does not match block count at stage: {}".format(stage_idx)
 
             use_unfixed_bn = False
-            if name in cfg.MODEL.DONT_LOAD:
+            if name in cfg.MODEL.DONT_LOAD and cfg.MODEL.RESNETS.TRANS_FUNC == "BottleneckWithFixedBatchNorm":
                 use_unfixed_bn = True
 
-            if cfg.MODEL.RPN.USE_FPN:
+            if cfg.MODEL.RPN.USE_FPN or cfg.MODEL.BACKBONE.RESREG != 0:
                 first_stride = int(stage_spec.index > 1) + 1
                 dilation = 1
             else:
@@ -326,7 +349,7 @@ class ResNetHead(nn.Module):
             name = "layer" + str(stage.index)
 
             use_unfixed_bn = False
-            if name in cfg.MODEL.DONT_LOAD:
+            if name in cfg.MODEL.DONT_LOAD and cfg.MODEL.RESNETS.TRANS_FUNC == "BottleneckWithFixedBatchNorm":
                 use_unfixed_bn = True
 
             if not stride:
@@ -638,4 +661,9 @@ _STAGE_SPECS = Registry({
     "R-101-FPN": ResNet101FPNStagesTo5,
     "R-101-FPN-RETINANET": ResNet101FPNStagesTo5,
     "R-152-FPN": ResNet152FPNStagesTo5,
+
+    "R-50-3_4_2": ResNet50_3_4_2,
+    "R-50-3_4_8": ResNet50_3_4_8,
+    "R-50-3_4_14": ResNet50_3_4_14,
+    "R-50-3_4_20": ResNet50_3_4_20,
 })
