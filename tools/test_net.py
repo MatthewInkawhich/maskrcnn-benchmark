@@ -45,6 +45,12 @@ def main():
         action="store_true",
     )
     parser.add_argument(
+        "--more-sizes",
+        dest="more_sizes",
+        help="Evaluate precision and recall for more granular size bins",
+        action="store_true",
+    )
+    parser.add_argument(
         "opts",
         help="Modify config options using the command-line",
         default=None,
@@ -124,6 +130,7 @@ def main():
             expected_results_sigma_tol=cfg.TEST.EXPECTED_RESULTS_SIGMA_TOL,
             output_folder=output_folder,
             speed_only=args.speed_only,
+            more_sizes=args.more_sizes,
             ewadaptive=ewadaptive,
         )
         synchronize()

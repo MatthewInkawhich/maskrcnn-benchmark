@@ -1,0 +1,44 @@
+MODEL:
+  META_ARCHITECTURE: "GeneralizedRCNN"
+  WEIGHT: "catalog://ImageNetPretrained/MSRA/R-50"
+  BACKBONE:
+    CONV_BODY: "R-50-FPN"
+  RESNETS:
+    BACKBONE_OUT_CHANNELS: 256
+  RPN:
+    USE_FPN: True
+    ANCHOR_STRIDE: (4, 8, 16, 32, 64)
+    PRE_NMS_TOP_N_TRAIN: 2000   # Per FPN level
+    PRE_NMS_TOP_N_TEST: 1000    # Per FPN level     
+    POST_NMS_TOP_N_TRAIN: 2000  # Per FPN level
+    POST_NMS_TOP_N_TEST: 1000   # Per FPN level
+    FPN_POST_NMS_PER_BATCH: False   # True
+    FPN_POST_NMS_TOP_N_TRAIN: 1000  # 2000 (if 2 ims/GPU)  Per image
+    FPN_POST_NMS_TOP_N_TEST: 1000   # Per image
+  ROI_HEADS:
+    USE_FPN: True
+    DETECTIONS_PER_IMG: 100
+  ROI_BOX_HEAD:
+    POOLER_RESOLUTION: 7
+    POOLER_SCALES: (0.25, 0.125, 0.0625, 0.03125)
+    POOLER_SAMPLING_RATIO: 2
+    FEATURE_EXTRACTOR: "FPN2MLPFeatureExtractor"
+    PREDICTOR: "FPNPredictor"
+    NUM_CLASSES: 81
+DATASETS:
+  TRAIN: ("coco_2017_train",)
+  TEST: ("coco_2017_val",)
+DATALOADER:
+  SIZE_DIVISIBILITY: 16 # Not exactly sure what this does
+SOLVER:
+  IMS_PER_BATCH: 8  # 4 GPUs * 2 ims/GPU
+  BASE_LR: 0.01
+  WEIGHT_DECAY: 0.0001
+  STEPS: (120000, 160000)
+  MAX_ITER: 180000
+  CHECKPOINT_PERIOD: 5000
+TEST:
+  IMS_PER_BATCH: 8
+  DETECTIONS_PER_IMG: 100
+
+OUTPUT_DIR: "./out/coco/faster_R50_fpn"

@@ -20,6 +20,7 @@ def do_coco_evaluation(
     iou_types,
     expected_results,
     expected_results_sigma_tol,
+    more_sizes,
 ):
     logger = logging.getLogger("maskrcnn_benchmark.inference")
 
@@ -66,7 +67,7 @@ def do_coco_evaluation(
             if output_folder:
                 file_path = os.path.join(output_folder, iou_type + ".json")
             res = evaluate_predictions_on_coco(
-                dataset.coco, coco_results[iou_type], file_path, iou_type, xview
+                dataset.coco, coco_results[iou_type], file_path, iou_type, xview, more_sizes
             )
             results.update(res)
     logger.info(results)
@@ -312,7 +313,7 @@ def evaluate_box_proposals(
 
 
 def evaluate_predictions_on_coco(
-    coco_gt, coco_results, json_result_file, iou_type="bbox", xview=False
+    coco_gt, coco_results, json_result_file, iou_type="bbox", xview=False, more_sizes=False
 ):
     import json
 
@@ -333,9 +334,25 @@ def evaluate_predictions_on_coco(
         coco_eval.params.maxDets = [10, 100, 1000000]
         coco_eval.params.iouThrs = np.array([0.5])
 
+    if more_sizes:
+       # coco_eval.params.areaRng = [[0, 1e5 ** 2], [0, 20**2], [20**2, 40**2], [40**2, 60**2], [60**2, 80**2], [80**2, 100**2], [100**2, 120**2], [120**2, 140**2], [140**2, 160**2], [160**2, 180**2], [180**2, 200**2], [200**2, 220**2], [220**2, 240**2], [240**2, 260**2], [260**2, 280**2], [280**2, 300**2], [300**2, 320**2], [320**2, 340**2], [340**2, 360**2], [360**2, 380**2], [380**2, 1e5 ** 2]]
+        #coco_eval.params.areaRngLbl = ['all', '20', '40', '60', '80', '100', '120', '140', '160', '180', '200', '220', '240', '260', '280', '300', '320', '340', '360', '380', '>']
+        areaRng = [[0, 1e5 ** 2]] 
+        areaRngLbl = ['all']
+
+        for r in range(5, 305, 5): 
+            areaRng.append([(r - 5) ** 2, r ** 2]) 
+            areaRngLbl.append(str(r))
+
+        areaRng.append([r ** 2, 1e5 ** 2]) 
+        areaRngLbl.append('>')
+
+        coco_eval.params.areaRng = areaRng
+        coco_eval.params.areaRngLbl = areaRngLbl
+
     coco_eval.evaluate()
     coco_eval.accumulate()
-    coco_eval.summarize(xview=xview)
+    coco_eval.summarize(xview=xview, more_sizes=more_sizes)
     return coco_eval
 
 
