@@ -7,6 +7,7 @@ from maskrcnn_benchmark.modeling import registry
 from maskrcnn_benchmark.modeling.make_layers import conv_with_kaiming_uniform
 from . import fpn as fpn_module
 from . import resnet
+from . import ddpp
 from . import selector
 from . import resreg
 
@@ -90,6 +91,14 @@ def build_resnet_fpn_p3p7_backbone(cfg):
     )
     model = nn.Sequential(OrderedDict([("body", body), ("fpn", fpn)]))
     model.out_channels = out_channels
+    return model
+
+
+@registry.BACKBONES.register("DDPP")
+def build_ddpp_backbone(cfg):
+    body = ddpp.DDPP(cfg)
+    model = nn.Sequential(OrderedDict([("body", body)]))
+    model.out_channels = cfg.MODEL.DDPP.OUT_CHANNELS
     return model
 
 

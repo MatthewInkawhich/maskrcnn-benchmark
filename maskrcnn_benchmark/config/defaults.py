@@ -294,6 +294,19 @@ _C.MODEL.RESNETS.DEFORMABLE_GROUPS = 1
 _C.MODEL.RESNETS.MIDDLE_KERNEL_SIZES = []
 _C.MODEL.RESNETS.DILATIONS = (1, 1, 1)
 
+
+# ---------------------------------------------------------------------------- #
+# Deep Detail Preservation Pyramid (DDPP) Options
+# ---------------------------------------------------------------------------- #
+_C.MODEL.DDPP = CN()
+_C.MODEL.DDPP.STEM_OUT_CHANNELS = 64
+_C.MODEL.DDPP.DOWN_BLOCK_COUNTS = [3, 4, 6, 3]
+_C.MODEL.DDPP.UP_BLOCK_COUNTS = [3, 4, 6, 3]
+_C.MODEL.DDPP.DOWN_CHANNELS = [[64, 64, 256], [256, 128, 512], [512, 256, 1024], [1024, 512, 2048]]
+_C.MODEL.DDPP.UP_CHANNELS = [[256, 64, 256], [512, 128, 512], [1024, 256, 1024], [2048, 512, 2048]]
+_C.MODEL.DDPP.OUT_CHANNELS = 2048
+
+
 # ---------------------------------------------------------------------------- #
 # RetinaNet Options (Follow the Detectron version)
 # ---------------------------------------------------------------------------- #

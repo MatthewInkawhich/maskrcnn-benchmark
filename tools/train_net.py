@@ -37,7 +37,7 @@ def train(cfg, local_rank, distributed, primer="", empty_cache=False):
     model = build_detection_model(cfg)
     if get_rank() == 0:
         print(model)
-    #exit()
+    exit()
     device = torch.device(cfg.MODEL.DEVICE)
     model.to(device)
 
