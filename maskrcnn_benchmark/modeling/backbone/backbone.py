@@ -98,7 +98,7 @@ def build_resnet_fpn_p3p7_backbone(cfg):
 def build_ddpp_backbone(cfg):
     body = ddpp.DDPP(cfg)
     model = nn.Sequential(OrderedDict([("body", body)]))
-    model.out_channels = cfg.MODEL.DDPP.OUT_CHANNELS
+    model.out_channels = cfg.MODEL.DDPP.OUT_CHANNELS_AFTER_CHRED
     return model
 
 

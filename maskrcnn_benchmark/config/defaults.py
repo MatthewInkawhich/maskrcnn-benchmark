@@ -131,6 +131,8 @@ _C.MODEL.GROUP_NORM.EPSILON = 1e-5
 # ---------------------------------------------------------------------------- #
 _C.MODEL.RPN = CN()
 _C.MODEL.RPN.USE_FPN = False
+_C.MODEL.RPN.USE_DDPP = False
+
 # Base RPN anchor sizes given in absolute pixels w.r.t. the scaled network input
 _C.MODEL.RPN.ANCHOR_SIZES = (32, 64, 128, 256, 512)
 # Stride of the feature map that RPN is attached.
@@ -299,12 +301,16 @@ _C.MODEL.RESNETS.DILATIONS = (1, 1, 1)
 # Deep Detail Preservation Pyramid (DDPP) Options
 # ---------------------------------------------------------------------------- #
 _C.MODEL.DDPP = CN()
-_C.MODEL.DDPP.STEM_OUT_CHANNELS = 64
+_C.MODEL.DDPP.STEM_OUT_CHANNELS = 32
 _C.MODEL.DDPP.DOWN_BLOCK_COUNTS = [3, 4, 6, 3]
 _C.MODEL.DDPP.UP_BLOCK_COUNTS = [3, 4, 6, 3]
-_C.MODEL.DDPP.DOWN_CHANNELS = [[64, 64, 256], [256, 128, 512], [512, 256, 1024], [1024, 512, 2048]]
-_C.MODEL.DDPP.UP_CHANNELS = [[256, 64, 256], [512, 128, 512], [1024, 256, 1024], [2048, 512, 2048]]
-_C.MODEL.DDPP.OUT_CHANNELS = 2048
+_C.MODEL.DDPP.DOWN_CHANNELS = [[32, 32, 128], [128, 64, 256], [256, 128, 512], [512, 256, 1024]]
+_C.MODEL.DDPP.UP_CHANNELS = [[128, 64, 128], [256, 64, 256], [512, 128, 512], [1024, 256, 1024]]
+_C.MODEL.DDPP.OUT_CHANNELS_BEFORE_CHRED = 1024
+_C.MODEL.DDPP.OUT_CHANNELS_AFTER_CHRED = 256
+_C.MODEL.DDPP.USE_CASCADE = False
+_C.MODEL.DDPP.UPDOWN_SKIP = False
+
 
 
 # ---------------------------------------------------------------------------- #

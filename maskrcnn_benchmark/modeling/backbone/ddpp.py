@@ -35,6 +35,10 @@ class DDPP(nn.Module):
         assert (len(cfg.MODEL.DDPP.DOWN_BLOCK_COUNTS) == len(cfg.MODEL.DDPP.DOWN_CHANNELS)), "Down block counts must equal down channels"
         assert (len(cfg.MODEL.DDPP.UP_BLOCK_COUNTS) == len(cfg.MODEL.DDPP.UP_CHANNELS)), "Up block counts must equal up channels"
 
+        # Set local option flags
+        self.use_cascade = cfg.MODEL.DDPP.USE_CASCADE
+        self.use_updown_skip = cfg.MODEL.DDPP.USE_UPDOWN_SKIP
+
         # Construct Stem
         self.C1 = Stem(cfg.MODEL.DDPP.STEM_OUT_CHANNELS)
 
@@ -50,17 +54,101 @@ class DDPP(nn.Module):
         self.D4 = UpStage(cfg.MODEL.DDPP.UP_CHANNELS[2][0], cfg.MODEL.DDPP.UP_CHANNELS[2][1], cfg.MODEL.DDPP.UP_CHANNELS[2][2], cfg.MODEL.DDPP.UP_BLOCK_COUNTS[2])
         self.D5 = UpStage(cfg.MODEL.DDPP.UP_CHANNELS[3][0], cfg.MODEL.DDPP.UP_CHANNELS[3][1], cfg.MODEL.DDPP.UP_CHANNELS[3][2], cfg.MODEL.DDPP.UP_BLOCK_COUNTS[3])
 
+        # Construct ChannelReduction layers
+        self.chred1 = Conv2d(cfg.MODEL.DDPP.OUT_CHANNELS_BEFORE_CHRED, cfg.MODEL.DDPP.OUT_CHANNELS_AFTER_CHRED, kernel_size=1, stride=1)
+        self.chred2 = Conv2d(cfg.MODEL.DDPP.OUT_CHANNELS_BEFORE_CHRED, cfg.MODEL.DDPP.OUT_CHANNELS_AFTER_CHRED, kernel_size=1, stride=1)
+        self.chred3 = Conv2d(cfg.MODEL.DDPP.OUT_CHANNELS_BEFORE_CHRED, cfg.MODEL.DDPP.OUT_CHANNELS_AFTER_CHRED, kernel_size=1, stride=1)
+        self.chred4 = Conv2d(cfg.MODEL.DDPP.OUT_CHANNELS_BEFORE_CHRED, cfg.MODEL.DDPP.OUT_CHANNELS_AFTER_CHRED, kernel_size=1, stride=1)
+
+        # Construct top_block
+        self.top_block = nn.MaxPool2d(kernel_size=1, stride=2, padding=0)
+
+        # Construct post_cascade layers
+        if self.use_cascade:
+            post_cascade_blocks = []
+            for i in range(1, 5):
+                # Set block_name
+                block_name = "post_cascade" + str(i)
+                # Construct block_module
+                block_module = Conv2d(cfg.MODEL.DDPP.OUT_CHANNELS_AFTER_CHRED, cfg.MODEL.DDPP.OUT_CHANNELS_AFTER_CHRED, kernel_size=3, stride=1, padding=1)
+                # Add block to module
+                self.add_module(block_name, block_module)
+                # Add block name to list
+                post_cascade_blocks.append(block_name)
+
+
 
     def forward(self, x):
         """
         Arguments:
             x (Tensor): Input image batch
         Returns:
-            results (tuple[Tensor]): output feature maps from DDPP.
+            outputs (tuple[Tensor]): output feature maps from DDPP.
                 They are ordered from highest resolution first (like FPN).
         """
+        outputs = []
+        # Forward thru stem
+        C1_out = self.C1(x)
 
-        return x
+        # Level 1 (base)
+        C2_out = self.C2(C1_out)
+        D2_out = self.D2(C2_out)
+        if self.use_updown_skip:
+            D2_out += C1_out
+        C3_out = self.C3(D2_out)
+        D3_out = self.D3(C3_out)
+        if self.use_updown_skip:
+            D3_out += D2_out
+        C4_out = self.C4(D3_out)
+        D4_out = self.D4(C4_out)
+        if self.use_updown_skip:
+            D4_out += D3_out
+        x = self.C5(D4_out)
+        x = self.chred1(x)
+        outputs.append(x)
+
+        # Level 2
+        x = self.C5(C4_out)
+        x = self.chred2(x)
+        outputs.append(x)
+
+        # Level 3
+        x = self.C4(C3_out)
+        x = self.C5(x)
+        x = self.chred3(x)
+        outputs.append(x)
+
+        # Level 4
+        x = self.C3(C2_out)
+        x = self.C4(x)
+        x = self.C5(x)
+        x = self.chred4(x)
+        outputs.append(x)
+
+        if self.use_cascade:
+            new_outputs = []
+            # Store top feature map (low res)
+            last_inner = outputs[-1]
+            # Forward top feature map thru its post_cascade block and store to new_outputs
+            new_outputs.append(getattr(self, post_cascade_blocks[-1])(last_inner))
+            # Iterate over remaining feat maps in reverse (top-down)
+            for feature, post_cascade_block in zip(outputs[:-1][::-1], post_cascade_blocks[:-1][::-1]):
+                # Upsample current feature
+                inner_top_down = F.upsample(last_inner, size=feature.shape[-2:], mode='bilinear', align_corners=False)
+                # Fuse features
+                last_inner = feature + inner_top_down
+                # Forward fused feature through post_cascade_block and insert to front of list
+                new_outputs.insert(0, getattr(self, post_cascade_block)(last_inner))
+ 
+            outputs = new_outputs
+            x = outputs[-1]
+
+        # Level 5 (top)
+        x = self.top_block(x)
+        outputs.append(x)
+        
+        return tuple(outputs)
+
 
 
 ################################################################################
@@ -155,8 +243,9 @@ class UpStage(nn.Module):
     """
     def __init__(
         self,
-        inout_channels,
+        in_channels,
         bottleneck_channels,
+        out_channels,
         block_count,
         last_stride=2,
     ):
@@ -172,9 +261,9 @@ class UpStage(nn.Module):
                 stride=last_stride
             blocks.append(
                 UpBottleneck(
-                    inout_channels,
+                    in_channels,
                     bottleneck_channels,
-                    inout_channels,
+                    out_channels,
                     stride=stride,
                     dilation=1,
                     norm_func=group_norm,

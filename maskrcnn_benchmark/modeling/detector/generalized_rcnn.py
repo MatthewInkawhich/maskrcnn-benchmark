@@ -50,9 +50,9 @@ class GeneralizedRCNN(nn.Module):
         #print("images:", images.tensors.size())
         features = self.backbone(images.tensors)
         #print("features:", features[0].shape)
-        #exit()
         #for idx, f in enumerate(features):
         #    print("feature[{}]:".format(idx), f.size())
+        #exit()
 
         proposals, proposal_losses = self.rpn(images, features, targets)
         #print("proposals:", proposals)
