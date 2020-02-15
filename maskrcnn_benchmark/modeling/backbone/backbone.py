@@ -95,8 +95,15 @@ def build_resnet_fpn_p3p7_backbone(cfg):
 
 
 @registry.BACKBONES.register("DDPP")
+@registry.BACKBONES.register("DDPP-SS")
+@registry.BACKBONES.register("DDPPv2")
 def build_ddpp_backbone(cfg):
-    body = ddpp.DDPP(cfg)
+    if cfg.MODEL.BACKBONE.CONV_BODY == "DDPP-SS":
+        body = ddpp.DDPP_SS(cfg)
+    elif cfg.MODEL.BACKBONE.CONV_BODY == "DDPPv2":
+        body = ddpp.DDPPv2(cfg)
+    else:
+        body = ddpp.DDPP(cfg)
     model = nn.Sequential(OrderedDict([("body", body)]))
     model.out_channels = cfg.MODEL.DDPP.OUT_CHANNELS_AFTER_CHRED
     return model

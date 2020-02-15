@@ -51,7 +51,26 @@
 #python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/faster_R50_C4_resreg_up2x.yaml"
 #python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/faster_R50_C4_resreg_up4x.yaml"
 
+# No Pretrain
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/faster_R50_C4_vanilla_nopretrain.yaml"
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/coco/faster_R50_C4_vanilla_nopretrain.yaml" --ckpt "out/coco/faster_R50_C4_vanilla_nopretrain/model_final.pth" --more-sizes
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/faster_R50_fpn_nopretrain.yaml"
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/coco/faster_R50_fpn_nopretrain.yaml" --ckpt "out/coco/faster_R50_fpn_nopretrain/model_final.pth" --more-sizes
 
 
 ### COCO FPN
-python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/faster_R50_fpn.yaml"
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/faster_R50_fpn.yaml"
+
+#------------------------------------------------
+### DDPP
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/faster_R50_ddpp_vanilla.yaml" --empty-cache
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/faster_R50_ddpp_hourglass_skip.yaml" --empty-cache
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/faster_R50_ddpp_cascade.yaml" --empty-cache
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/faster_R50_ddppss_cascade.yaml" --empty-cache
+
+### DDPPv2
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/faster_R50_ddppv2_vanilla.yaml" --empty-cache
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/faster_R50_ddppv2_cascadehead.yaml" --empty-cache
+python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/faster_R50_ddppv2_cascadebodyhead.yaml" --empty-cache
+
+

@@ -30,5 +30,19 @@
 #echo "3-4-20"
 
 
-python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/coco/faster_R50_fpn.yaml" --ckpt "out/coco/faster_R50_fpn/model_final.pth" --more-sizes
-echo "FPN"
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/coco/faster_R50_fpn.yaml" --ckpt "out/coco/faster_R50_fpn/model_final.pth" --more-sizes
+#echo "FPN"
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/coco/faster_R50_C4_vanilla_nopretrain.yaml" --ckpt "out/coco/faster_R50_vanilla_nopretrain/model_final.pth" --more-sizes
+#echo "C4 nopretrain"
+python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/coco/faster_R50_fpn_nopretrain.yaml" --ckpt "out/coco/faster_R50_fpn_nopretrain/model_final.pth" --more-sizes
+echo "FPN nopretrain"
+
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/coco/faster_R50_ddpp_vanilla.yaml" --ckpt "out/coco/faster_R50_ddpp_vanilla/model_final.pth" --more-sizes
+#echo "DDPP vanilla"
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/coco/faster_R50_ddpp_hourglass_skip.yaml" --ckpt "out/coco/faster_R50_ddpp_hourglass_skip/model_final.pth" --more-sizes
+#echo "DDPP hourglass-skip"
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/coco/faster_R50_ddpp_cascade.yaml" --ckpt "out/coco/faster_R50_ddpp_cascade/model_final.pth" --more-sizes
+#echo "DDPP cascade"
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/coco/faster_R50_ddppss_cascade.yaml" --ckpt "out/coco/faster_R50_ddppss_cascade/model_final.pth" --more-sizes
+#echo "DDPP-SS cascade"
+

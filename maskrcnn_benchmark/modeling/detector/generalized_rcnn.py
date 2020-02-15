@@ -52,12 +52,13 @@ class GeneralizedRCNN(nn.Module):
         #print("features:", features[0].shape)
         #for idx, f in enumerate(features):
         #    print("feature[{}]:".format(idx), f.size())
-        #exit()
 
         proposals, proposal_losses = self.rpn(images, features, targets)
         #print("proposals:", proposals)
         #for idx, p in enumerate(proposals):
         #    print("proposal[{}]:".format(idx), p)
+        #exit()
+
         if self.roi_heads:
             x, result, detector_losses = self.roi_heads(features, proposals, targets)
         else:
