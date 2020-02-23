@@ -34,8 +34,8 @@
 #echo "FPN"
 #python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/coco/faster_R50_C4_vanilla_nopretrain.yaml" --ckpt "out/coco/faster_R50_vanilla_nopretrain/model_final.pth" --more-sizes
 #echo "C4 nopretrain"
-python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/coco/faster_R50_fpn_nopretrain.yaml" --ckpt "out/coco/faster_R50_fpn_nopretrain/model_final.pth" --more-sizes
-echo "FPN nopretrain"
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/coco/faster_R50_fpn_nopretrain.yaml" --ckpt "out/coco/faster_R50_fpn_nopretrain/model_final.pth" --more-sizes
+#echo "FPN nopretrain"
 
 #python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/coco/faster_R50_ddpp_vanilla.yaml" --ckpt "out/coco/faster_R50_ddpp_vanilla/model_final.pth" --more-sizes
 #echo "DDPP vanilla"
@@ -46,3 +46,11 @@ echo "FPN nopretrain"
 #python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/coco/faster_R50_ddppss_cascade.yaml" --ckpt "out/coco/faster_R50_ddppss_cascade/model_final.pth" --more-sizes
 #echo "DDPP-SS cascade"
 
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/coco/faster_R50_ddppv2_vanilla.yaml" --ckpt "out/coco/faster_R50_ddppv2_vanilla/model_final.pth" --more-sizes
+#echo "DDPPv2 vanilla"
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/coco/faster_R50_ddppv2_cascadehead.yaml" --ckpt "out/coco/faster_R50_ddppv2_cascadehead/model_final.pth" --more-sizes
+#echo "DDPPv2 cascadehead"
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/coco/faster_R50_ddppv2_cascadebodyhead.yaml" --ckpt "out/coco/faster_R50_ddppv2_cascadebodyhead/model_final.pth" --more-sizes
+#echo "DDPPv2 cascadebodyhead"
+python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/coco/faster_R50_ddppv2ss_cascadebodyhead.yaml" --ckpt "out/coco/faster_R50_ddppv2ss_cascadebodyhead/model_final.pth" --more-sizes
+echo "DDPPv2ss cascadebodyhead"

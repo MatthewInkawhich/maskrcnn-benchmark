@@ -127,7 +127,7 @@ def train(cfg, local_rank, distributed, primer="", empty_cache=False):
     return model
 
 
-def run_test(cfg, model, distributed):
+def run_test(cfg, model, distributed, more_sizes=False):
     if distributed:
         model = model.module
     torch.cuda.empty_cache()  # TODO check if it helps
@@ -155,6 +155,7 @@ def run_test(cfg, model, distributed):
             expected_results=cfg.TEST.EXPECTED_RESULTS,
             expected_results_sigma_tol=cfg.TEST.EXPECTED_RESULTS_SIGMA_TOL,
             output_folder=output_folder,
+            more_sizes=more_sizes,
         )
         synchronize()
 
@@ -179,6 +180,12 @@ def main():
         "--empty-cache",
         dest="empty_cache",
         help="To empty cache during training",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--more-sizes",
+        dest="more_sizes",
+        help="Evaluate precision and recall for more granular size bins",
         action="store_true",
     )
     parser.add_argument(
@@ -235,6 +242,8 @@ def main():
 
     if not args.skip_test:
         run_test(cfg, model, args.distributed)
+        if args.more_sizes:
+            run_test(cfg, model, args.distributed, more_sizes=True)
 
 
 if __name__ == "__main__":
