@@ -17,4 +17,8 @@
 
 #python ./tools/train_net.py --config-file "configs/coco/faster_R50_ddppv2_vanilla.yaml" --empty-cache
 #python ./tools/train_net.py --config-file "configs/coco/faster_R50_ddppv2_cascadehead.yaml" --empty-cache
-python ./tools/train_net.py --config-file "configs/coco/faster_R50_ddppv2_cascadebodyhead.yaml" --empty-cache
+#python ./tools/train_net.py --config-file "configs/coco/faster_R50_ddppv2_cascadebodyhead.yaml" --empty-cache
+
+
+# Custom
+python ./tools/train_net.py --config-file "configs/coco/custom/C4_vanilla.yaml" --empty-cache

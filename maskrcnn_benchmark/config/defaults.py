@@ -298,6 +298,18 @@ _C.MODEL.RESNETS.DILATIONS = (1, 1, 1)
 
 
 # ---------------------------------------------------------------------------- #
+# Custom ResNet Options
+# ---------------------------------------------------------------------------- #
+_C.MODEL.CUSTOM_RESNET = CN()
+_C.MODEL.CUSTOM_RESNET.STEM_OUT_CHANNELS = 64
+_C.MODEL.CUSTOM_RESNET.STEM_CONFIG = [[7,2,3,1], [3,2,1,1]]
+_C.MODEL.CUSTOM_RESNET.STEM_CHANNELS = [64, 64]
+_C.MODEL.CUSTOM_RESNET.BODY_CONFIG = [[[3,1,1,1], [3,1,1,1], [3,1,1,1]], [[3,2,1,1], [3,1,1,1], [3,1,1,1], [3,1,1,1]], [[3,2,1,1], [3,1,1,1], [3,1,1,1], [3,1,1,1], [3,1,1,1],[3,1,1,1]]]
+_C.MODEL.CUSTOM_RESNET.BODY_CHANNELS = [[64, 64, 256], [256, 128, 512], [512, 256, 1024]]
+_C.MODEL.CUSTOM_RESNET.OUT_CHANNELS = 1024
+
+
+# ---------------------------------------------------------------------------- #
 # Deep Detail Preservation Pyramid (DDPP) Options
 # ---------------------------------------------------------------------------- #
 _C.MODEL.DDPP = CN()
