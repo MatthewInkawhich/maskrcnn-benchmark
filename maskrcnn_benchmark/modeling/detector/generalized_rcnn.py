@@ -47,12 +47,12 @@ class GeneralizedRCNN(nn.Module):
             raise ValueError("In training mode, targets should be passed")
 
         images = to_image_list(images)
-        print("images:", images.tensors.size())
+        #print("images:", images.tensors.size())
         features = self.backbone(images.tensors)
         #print("features:", features[0].shape)
-        for idx, f in enumerate(features):
-            print("feature[{}]:".format(idx), f.size())
-        exit()
+        #for idx, f in enumerate(features):
+        #    print("feature[{}]:".format(idx), f.size())
+        #exit()
 
         proposals, proposal_losses = self.rpn(images, features, targets)
         #print("proposals:", proposals)
