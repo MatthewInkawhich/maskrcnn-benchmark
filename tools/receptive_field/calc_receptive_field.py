@@ -33,6 +33,8 @@ def readModelFromFile(filepath):
             line = line.rstrip('\n')
             # filter out empty lines and comment lines
             if line and line[0] != '#':
+                if '#' in line:
+                    line = line.split('#')[0]
                 layer = line.split(',')
                 layer = [float(l) for l in layer]
                 model.append(layer)
@@ -52,7 +54,9 @@ def outFromIn(conv, layerIn):
     # adjust kernel according to dilation
     rf_k = d * (k - 1) + 1
 
-    n_out = math.floor((n_in - k + 2*p)/s) + 1
+    #n_out = math.floor((n_in - k + 2*p)/s) + 1
+    n_out = math.floor((n_in + 2*p - (d * (k-1)) - 1) / s) + 1
+
     #actualP = (n_out-1)*s - n_in + k 
     #pR = math.ceil(actualP/2)
     #pL = math.floor(actualP/2)
@@ -113,7 +117,7 @@ if __name__ == '__main__':
         layerInfos.append(list(currentLayer))
         printLayer(currentLayer)
     print ("------------------------")
-
+    
 
     #print("layerInfos:", layerInfos)
     rfs = np.array(layerInfos)[:, 3]
