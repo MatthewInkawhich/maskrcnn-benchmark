@@ -25,12 +25,24 @@ class GeneralizedRCNN(nn.Module):
 
     def __init__(self, cfg):
         super(GeneralizedRCNN, self).__init__()
-
+        self.cfg = cfg.clone()
         self.backbone = build_backbone(cfg)
+        self.using_intermediate_supervision = False
+    
+        # Construct intermediate RPNs if necessary
+        if cfg.MODEL.RPN.USE_DDPP and cfg.MODEL.DDPP.USE_INTERMEDIATE_SUPERVISION:
+            self.using_intermediate_supervision = True
+            self.irpn2 = build_rpn(cfg, cfg.MODEL.DDPP.DOWN_CHANNELS[0][2], cfg.MODEL.DDPP.IRPN_CONFIG[0])
+            self.irpn3 = build_rpn(cfg, cfg.MODEL.DDPP.DOWN_CHANNELS[1][2], cfg.MODEL.DDPP.IRPN_CONFIG[1])
+            self.irpn4 = build_rpn(cfg, cfg.MODEL.DDPP.DOWN_CHANNELS[2][2], cfg.MODEL.DDPP.IRPN_CONFIG[2])
+            self.irpn5 = build_rpn(cfg, cfg.MODEL.DDPP.DOWN_CHANNELS[3][2], cfg.MODEL.DDPP.IRPN_CONFIG[3])
+            self.irpn_loss_weight = cfg.MODEL.DDPP.IRPN_LOSS_WEIGHT
+
         self.rpn = build_rpn(cfg, self.backbone.out_channels)
         self.roi_heads = build_roi_heads(cfg, self.backbone.out_channels)
 
-    def forward(self, images, targets=None):
+
+    def forward(self, images, targets=None, probe=False):
         """
         Arguments:
             images (list[Tensor] or ImageList): images to be processed
@@ -48,11 +60,27 @@ class GeneralizedRCNN(nn.Module):
 
         images = to_image_list(images)
         #print("images:", images.tensors.size())
-        features = self.backbone(images.tensors)
+        if self.using_intermediate_supervision:
+            # Forward thru backbone
+            features, intermediate_features = self.backbone(images.tensors)
+
+            if self.training:
+                # Forward thru each irpn
+                _, irpn2_losses = self.irpn2(images, [intermediate_features[0]], targets)
+                _, irpn3_losses = self.irpn3(images, [intermediate_features[1]], targets)
+                _, irpn4_losses = self.irpn4(images, [intermediate_features[2]], targets)
+                _, irpn5_losses = self.irpn5(images, [intermediate_features[3]], targets)
+                
+        else:
+            features = self.backbone(images.tensors)
+
         #print("features:", features[0].shape)
         #for idx, f in enumerate(features):
         #    print("feature[{}]:".format(idx), f.size())
         #exit()
+
+        if probe:
+            return self.rpn(images, features, targets, probe=True)
 
         proposals, proposal_losses = self.rpn(images, features, targets)
         #print("proposals:", proposals)
@@ -73,10 +101,20 @@ class GeneralizedRCNN(nn.Module):
         #    print("result[{}]:".format(idx), r, r.get_field('labels'), r.get_field('scores'))
         #exit()
 
+
         #print("result:", result)
 
         if self.training:
             losses = {}
+            if self.using_intermediate_supervision:
+                for k, v in irpn2_losses.items():
+                    losses["irpn2_"+k] = v * self.irpn_loss_weight
+                for k, v in irpn3_losses.items():
+                    losses["irpn3_"+k] = v * self.irpn_loss_weight
+                for k, v in irpn4_losses.items():
+                    losses["irpn4_"+k] = v * self.irpn_loss_weight
+                for k, v in irpn5_losses.items():
+                    losses["irpn5_"+k] = v * self.irpn_loss_weight
             losses.update(detector_losses)
             losses.update(proposal_losses)
             return losses

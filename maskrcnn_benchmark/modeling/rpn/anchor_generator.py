@@ -125,16 +125,27 @@ class AnchorGenerator(nn.Module):
         return anchors
 
 
-def make_anchor_generator(config):
-    anchor_sizes = config.MODEL.RPN.ANCHOR_SIZES
-    aspect_ratios = config.MODEL.RPN.ASPECT_RATIOS
-    anchor_stride = config.MODEL.RPN.ANCHOR_STRIDE
-    straddle_thresh = config.MODEL.RPN.STRADDLE_THRESH
+def make_anchor_generator(config, custom_config=None):
+    if custom_config:
+        anchor_sizes = custom_config[0]
+        aspect_ratios = custom_config[1]
+        anchor_stride = custom_config[2]
+        straddle_thresh = custom_config[3]
+    else:
+        anchor_sizes = config.MODEL.RPN.ANCHOR_SIZES
+        aspect_ratios = config.MODEL.RPN.ASPECT_RATIOS
+        anchor_stride = config.MODEL.RPN.ANCHOR_STRIDE
+        straddle_thresh = config.MODEL.RPN.STRADDLE_THRESH
 
-    if config.MODEL.RPN.USE_FPN or config.MODEL.RPN.USE_DDPP:
+    if config.MODEL.RPN.USE_FPN:
         assert len(anchor_stride) == len(
             anchor_sizes
-        ), "FPN and DDPP should have len(ANCHOR_STRIDE) == len(ANCHOR_SIZES)"
+        ), "FPN should have len(ANCHOR_STRIDE) == len(ANCHOR_SIZES)"
+    elif config.MODEL.RPN.USE_DDPP:
+        if not custom_config:
+            assert len(anchor_stride) == len(
+                anchor_sizes
+            ), "DDPP RPNs (not IRPNs) should have len(ANCHOR_STRIDE) == len(ANCHOR_SIZES)"
     else:
         assert len(anchor_stride) == 1, "Non-FPN/Non-DDPP should have a single ANCHOR_STRIDE"
     anchor_generator = AnchorGenerator(

@@ -64,6 +64,7 @@ _C.INPUT.SATURATION = 0.0
 _C.INPUT.HUE = 0.0
 
 _C.INPUT.VERTICAL_FLIP_PROB_TRAIN = 0.0
+_C.INPUT.HORIZONTAL_FLIP_PROB_TRAIN = 0.5
 
 # -----------------------------------------------------------------------------
 # Dataset
@@ -324,6 +325,10 @@ _C.MODEL.DDPP.USE_CASCADE_BODY = False
 _C.MODEL.DDPP.USE_CASCADE_HEAD = False
 _C.MODEL.DDPP.USE_HOURGLASS_SKIP = False
 _C.MODEL.DDPP.USE_STEM2X = True
+_C.MODEL.DDPP.USE_INTERMEDIATE_SUPERVISION = False
+_C.MODEL.DDPP.IRPN_LOSS_WEIGHT = 0.1
+_C.MODEL.DDPP.IRPN_CONFIG = [[[32], [0.5, 1.0, 2.0], [4], 0], [[32, 64], [0.5, 1.0, 2.0], [4], 0], [[32, 64, 128], [0.5, 1.0, 2.0], [4], 0], [[32, 64, 128, 256], [0.5, 1.0, 2.0], [4], 0]] # For each IRPN: [ANCHOR_SIZES, ASPECT_RATIOS, ANCHOR_STRIDE, STRADDLE_THRESH]
+
 
 
 
@@ -471,6 +476,9 @@ _C.SOLVER.CHECKPOINT_PERIOD = 2500
 # This is global, so if we have 8 GPUs and IMS_PER_BATCH = 16, each GPU will
 # see 2 images per batch
 _C.SOLVER.IMS_PER_BATCH = 16
+
+# Only set this when probing
+_C.SOLVER.PROBE = False
 
 # ---------------------------------------------------------------------------- #
 # Specific test options

@@ -195,6 +195,7 @@ class DDPPv2(nn.Module):
         self.use_cascade_body = cfg.MODEL.DDPP.USE_CASCADE_BODY
         self.use_hourglass_skip = cfg.MODEL.DDPP.USE_HOURGLASS_SKIP
         self.use_stem2x = cfg.MODEL.DDPP.USE_STEM2X
+        self.use_intermediate_supervision = cfg.MODEL.DDPP.USE_INTERMEDIATE_SUPERVISION
 
         # Construct Stem
         if self.use_stem2x:
@@ -316,7 +317,11 @@ class DDPPv2(nn.Module):
                 new_outputs.insert(0, getattr(self, post_cascade_head_block)(last_inner))
             outputs = new_outputs
         
-        return tuple(outputs)
+        if self.use_intermediate_supervision:
+            intermediate_outputs = [D2_out_fused, D3_out_fused, D4_out_fused, D5_out_fused]
+            return tuple(outputs), tuple(intermediate_outputs)
+        else:
+            return tuple(outputs)
 
 
     def forward_vanilla(self, x):
@@ -396,7 +401,11 @@ class DDPPv2(nn.Module):
                 new_outputs.insert(0, getattr(self, post_cascade_head_block)(last_inner))
             outputs = new_outputs
         
-        return tuple(outputs)
+        if self.use_intermediate_supervision:
+            intermediate_outputs = [D2_out_fused, D3_out_fused, D4_out_fused, D5_out_fused]
+            return tuple(outputs), tuple(intermediate_outputs)
+        else:
+            return tuple(outputs)
 
 
 
