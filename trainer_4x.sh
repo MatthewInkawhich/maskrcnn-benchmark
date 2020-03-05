@@ -36,7 +36,7 @@
 
 # Dilation
 #python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/nopretrain/faster_R50_C4_dilation2_np.yaml"
-python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/nopretrain/faster_R50_C4_dilation3_np.yaml"
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/nopretrain/faster_R50_C4_dilation3_np.yaml"
 #python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/nopretrain/faster_R50_C4_dilation4_np.yaml"
 
 # Depth
@@ -73,5 +73,16 @@ python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --con
 #python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/faster_R50_ddppv2_cascadehead.yaml" --empty-cache
 #python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/faster_R50_ddppv2_cascadebodyhead.yaml" --empty-cache
 #python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/faster_R50_ddppv2ss_cascadebodyhead.yaml" --empty-cache
+python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/faster_R50_ddppv2_cascade_is.yaml" --empty-cache
 
+
+#------------------------------------------------
+### Custom
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/custom/A_C4.yaml" --empty-cache --more-sizes
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/custom/B_C4.yaml" --empty-cache --more-sizes
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/custom/C_C4.yaml" --empty-cache --more-sizes
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/custom/vanilla_C4.yaml" --empty-cache --more-sizes
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/custom/E_C4.yaml" --empty-cache --more-sizes
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/custom/F_C4.yaml" --empty-cache
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/custom/G_C4.yaml" --empty-cache
 

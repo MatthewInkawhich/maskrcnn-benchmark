@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from maskrcnn_benchmark.modeling import registry
 from maskrcnn_benchmark.modeling.box_coder import BoxCoder
 from maskrcnn_benchmark.modeling.rpn.retinanet.retinanet import build_retinanet
+from maskrcnn_benchmark.structures.boxlist_ops import remove_large_boxes
 from .loss import make_rpn_loss_evaluator
 from .anchor_generator import make_anchor_generator
 from .inference import make_rpn_postprocessor
@@ -113,12 +114,20 @@ class RPNModule(torch.nn.Module):
     RPN proposals and losses. Works for both FPN and non-FPN.
     """
 
-    def __init__(self, cfg, in_channels):
+    def __init__(self, cfg, in_channels, intermediate_config=None):
         super(RPNModule, self).__init__()
 
         self.cfg = cfg.clone()
+        if intermediate_config:
+            self.intermediate = True
+            self.max_target_size = intermediate_config[0][-1]
+        else:
+            self.intermediate = False
 
-        anchor_generator = make_anchor_generator(cfg)
+        # Need this for computing loss later
+        self.ignore_idxs = []
+
+        anchor_generator = make_anchor_generator(cfg, intermediate_config)
 
         rpn_head = registry.RPN_HEADS[cfg.MODEL.RPN.RPN_HEAD]
         head = rpn_head(
@@ -138,7 +147,7 @@ class RPNModule(torch.nn.Module):
         self.box_selector_test = box_selector_test
         self.loss_evaluator = loss_evaluator
 
-    def forward(self, images, features, targets=None):
+    def forward(self, images, features, targets=None, probe=False):
         """
         Arguments:
             images (ImageList): images for which we want to compute the predictions
@@ -157,8 +166,11 @@ class RPNModule(torch.nn.Module):
         anchors = self.anchor_generator(images, features)
 
         #print("images:", images)
-        #print("images.tensors:", images.tensors, images.tensors.shape, images.tensors.min(), images.tensors.max())
-        #print("\n\nanchors:", anchors)
+        #print("images.tensors:", images.tensors.shape)
+        #print("features:", features[0].shape)
+        #print("anchors:", anchors)
+        #print("targets:", targets[0].get_field('labels'))
+        #print("\n\n")
         #print(anchors[0][0].bbox)
         #im = images.tensors[0].permute(1, 2, 0).cpu()
         #normalized_im = (im - im.min()) / (im.max() - im.min())
@@ -168,16 +180,28 @@ class RPNModule(torch.nn.Module):
         #exit()
 
         if self.training:
-            return self._forward_train(anchors, objectness, rpn_box_regression, targets)
+            return self._forward_train(anchors, objectness, rpn_box_regression, targets, probe)
         else:
             return self._forward_test(anchors, objectness, rpn_box_regression)
 
-    def _forward_train(self, anchors, objectness, rpn_box_regression, targets):
+    def _forward_train(self, anchors, objectness, rpn_box_regression, targets, probe):
+        # If probe flag is set, call loss_evaluator.probe
+        if probe:
+            return self.loss_evaluator.probe(anchors, objectness, rpn_box_regression, targets)
         if self.cfg.MODEL.RPN_ONLY:
             # When training an RPN-only model, the loss is determined by the
             # predicted objectness and rpn_box_regression values and there is
             # no need to transform the anchors into predicted boxes; this is an
             # optimization that avoids the unnecessary transformation.
+            boxes = anchors
+        elif self.intermediate:
+            # Find batch_idxs of images that do not contain objects smaller than the max_target_size
+            #print("targets before:", targets)
+            trimmed_targets = [remove_large_boxes(b, self.max_target_size) for b in targets]
+            self.ignore_idxs = [idx for idx in range(len(targets)) if len(trimmed_targets[idx]) == 0]
+            #targets = trimmed_targets
+            #print("trimmed_targets:", trimmed_targets)
+            #print("ignore_idxs:", self.ignore_idxs)
             boxes = anchors
         else:
             # For end-to-end models, anchors must be transformed into boxes and
@@ -187,7 +211,7 @@ class RPNModule(torch.nn.Module):
                     anchors, objectness, rpn_box_regression, targets
                 )
         loss_objectness, loss_rpn_box_reg = self.loss_evaluator(
-            anchors, objectness, rpn_box_regression, targets
+            anchors, objectness, rpn_box_regression, targets, self.ignore_idxs
         )
         losses = {
             "loss_objectness": loss_objectness,
@@ -197,7 +221,7 @@ class RPNModule(torch.nn.Module):
 
     def _forward_test(self, anchors, objectness, rpn_box_regression):
         boxes = self.box_selector_test(anchors, objectness, rpn_box_regression)
-        if self.cfg.MODEL.RPN_ONLY:
+        if self.cfg.MODEL.RPN_ONLY or self.intermediate:
             # For end-to-end models, the RPN proposals are an intermediate state
             # and don't bother to sort them in decreasing score order. For RPN-only
             # models, the proposals are the final output and we return them in
@@ -209,11 +233,11 @@ class RPNModule(torch.nn.Module):
         return boxes, {}
 
 
-def build_rpn(cfg, in_channels):
+def build_rpn(cfg, in_channels, intermediate_config=None):
     """
     This gives the gist of it. Not super important because it doesn't change as much
     """
     if cfg.MODEL.RETINANET_ON:
         return build_retinanet(cfg, in_channels)
 
-    return RPNModule(cfg, in_channels)
+    return RPNModule(cfg, in_channels, intermediate_config)

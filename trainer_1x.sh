@@ -17,4 +17,18 @@
 
 #python ./tools/train_net.py --config-file "configs/coco/faster_R50_ddppv2_vanilla.yaml" --empty-cache
 #python ./tools/train_net.py --config-file "configs/coco/faster_R50_ddppv2_cascadehead.yaml" --empty-cache
-python ./tools/train_net.py --config-file "configs/coco/faster_R50_ddppv2_cascadebodyhead.yaml" --empty-cache
+#python ./tools/train_net.py --config-file "configs/coco/faster_R50_ddppv2_cascadebodyhead.yaml" --empty-cache
+
+#python ./tools/train_net.py --config-file "configs/coco/faster_R50_ddppv2_cascade_is.yaml" --empty-cache
+
+python ./tools/train_net.py --config-file "configs/coco/faster_R50_C4_play.yaml"
+
+
+# Custom
+#python ./tools/train_net.py --config-file "configs/coco/custom/vanilla_C4.yaml" --empty-cache
+#python ./tools/train_net.py --config-file "configs/coco/custom/A_C4.yaml" --empty-cache
+#python ./tools/train_net.py --config-file "configs/coco/custom/B_C4.yaml" --empty-cache
+#python ./tools/train_net.py --config-file "configs/coco/custom/C_C4.yaml" --empty-cache
+#python ./tools/train_net.py --config-file "configs/coco/custom/E_C4.yaml" --empty-cache
+#python ./tools/train_net.py --config-file "configs/coco/custom/F_C4.yaml" --empty-cache
+#python ./tools/train_net.py --config-file "configs/coco/custom/G_C4.yaml" --empty-cache
