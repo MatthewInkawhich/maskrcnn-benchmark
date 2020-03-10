@@ -23,7 +23,7 @@ class RPNLossComputation(object):
     This class computes the RPN loss.
     """
 
-    def __init__(self, proposal_matcher, fg_bg_sampler, box_coder,
+    def __init__(self, cfg, proposal_matcher, fg_bg_sampler, box_coder,
                  generate_labels_func):
         """
         Arguments:
@@ -32,12 +32,14 @@ class RPNLossComputation(object):
             box_coder (BoxCoder)
         """
         # self.target_preparator = target_preparator
+        self.cfg = cfg.clone()
         self.proposal_matcher = proposal_matcher
         self.fg_bg_sampler = fg_bg_sampler
         self.box_coder = box_coder
         self.copied_fields = []
         self.generate_labels_func = generate_labels_func
         self.discard_cases = ['not_visibility', 'between_thresholds']
+        self.use_loss_weighting = True if self.cfg.SOLVER.LOSS_WEIGHTING.FUNCTION != "" else False
 
     def match_targets_to_anchors(self, anchor, target, copied_fields=[]):
         #print("anchor:", anchor, anchor.bbox, anchor.fields())
@@ -115,6 +117,30 @@ class RPNLossComputation(object):
         return labels, regression_targets
 
 
+    # Compute loss weights based on instance attributes (size)
+    def compute_loss_weights(self, target_boxes_lw):
+        sqrt_areas = torch.sqrt((target_boxes_lw[:, 2] - target_boxes_lw[:, 0] + 1) * (target_boxes_lw[:, 3] - target_boxes_lw[:, 1] + 1))
+        if self.cfg.SOLVER.LOSS_WEIGHTING.FUNCTION == 'Linear':
+            m = self.cfg.SOLVER.LOSS_WEIGHTING.LINEAR_M
+            epsilon = self.cfg.SOLVER.LOSS_WEIGHTING.EPSILON
+            slope = (epsilon - 1) / m
+            line0 = slope * sqrt_areas + 1
+            line1 = torch.ones_like(sqrt_areas) * epsilon
+            weights = torch.where(sqrt_areas <= m, line0, line1)
+            
+        elif self.cfg.SOLVER.LOSS_WEIGHTING.FUNCTION == 'Exponential':
+            epsilon = self.cfg.SOLVER.LOSS_WEIGHTING.EPSILON
+            alpha = self.cfg.SOLVER.LOSS_WEIGHTING.EXPONENTIAL_ALPHA
+            weights = epsilon + (1 - epsilon) * torch.exp(-alpha * sqrt_areas)
+
+        else:
+            print("LOSS_WEIGHTING.FUNCTION not recognized")
+            exit()
+
+        return weights
+
+
+
     def __call__(self, anchors, objectness, box_regression, targets, ignore_idxs=[]):
         """
         Arguments:
@@ -130,28 +156,27 @@ class RPNLossComputation(object):
         """
         # Merge anchors from all pyramid layers
         anchors = [cat_boxlist(anchors_per_image) for anchors_per_image in anchors]
-        labels, regression_targets = self.prepare_targets(anchors, targets)
-        sampled_pos_inds, sampled_neg_inds = self.fg_bg_sampler(labels)
-        #print("sampled_pos_inds:", sampled_pos_inds[0].shape, sampled_pos_inds[1].shape, sampled_pos_inds[0].sum(), sampled_pos_inds[1].sum())
-        #print("sampled_neg_inds:", sampled_neg_inds[0].shape, sampled_neg_inds[1].shape, sampled_neg_inds[0].sum(), sampled_neg_inds[1].sum())
+        # Get labels, regression_targets and matched_targets_list 
+        labels, regression_targets, matched_targets_list = self.prepare_targets(anchors, targets, probe=True)
+        #print("targets:", targets)
+        #print("anchors:", anchors)
+        #print("matched_targets_list:", matched_targets_list)
         
-        # If we are ignoring ALL images in the batch, set final_scaler to 0 so we zero all losses
-        if len(ignore_idxs) == len(sampled_pos_inds):
-            final_scaler = 0
 
-        # If we are ignoring none or some images in the batch, 
-        # replace sampled_pos_inds[ignore_idxs] and sampled_neg_inds[ignore_idxs] with zero tensors
-        # and set final_scaler to 1.
-        else:
-            final_scaler = 1
-            for ignore_idx in ignore_idxs:
-                sampled_pos_inds[ignore_idx] = torch.zeros_like(sampled_pos_inds[ignore_idx])
-                sampled_neg_inds[ignore_idx] = torch.zeros_like(sampled_neg_inds[ignore_idx])
+        if self.use_loss_weighting:
+            # Combine matched_targets boxes over batch
+            anchor_boxes = torch.cat([bl.bbox for bl in anchors], dim=0)
+            matched_target_boxes = torch.cat([bl.bbox for bl in matched_targets_list], dim=0)
+            #print("anchor_boxes:", anchor_boxes, anchor_boxes.shape)
+            #print("matched_target_boxes:", matched_target_boxes, matched_target_boxes.shape)
+            combined_labels = torch.cat(labels, dim=0).unsqueeze(1)
+            #print("combined_labels:", combined_labels, combined_labels.shape)
+            # Create target_boxes_lw: use matched_target_boxes[i] if combined_labels[i] > 0 (FG match),
+            # otherwise use anchor_boxes[i]
+            target_boxes_lw = torch.where(combined_labels > 0, matched_target_boxes, anchor_boxes)
+            #print("target_boxes_lw:", target_boxes_lw, target_boxes_lw.shape)
 
-            #print("AFTER: sampled_pos_inds:", sampled_pos_inds[0].shape, sampled_pos_inds[1].shape, sampled_pos_inds[0].sum(), sampled_pos_inds[1].sum())
-            #print("AFTER: sampled_neg_inds:", sampled_neg_inds[0].shape, sampled_neg_inds[1].shape, sampled_neg_inds[0].sum(), sampled_neg_inds[1].sum())
-     
-
+        sampled_pos_inds, sampled_neg_inds = self.fg_bg_sampler(labels)
         sampled_pos_inds = torch.nonzero(torch.cat(sampled_pos_inds, dim=0)).squeeze(1)
         sampled_neg_inds = torch.nonzero(torch.cat(sampled_neg_inds, dim=0)).squeeze(1)
 
@@ -165,6 +190,7 @@ class RPNLossComputation(object):
         labels = torch.cat(labels, dim=0)
         regression_targets = torch.cat(regression_targets, dim=0)
 
+
         box_loss = smooth_l1_loss(
             box_regression[sampled_pos_inds],
             regression_targets[sampled_pos_inds],
@@ -172,11 +198,19 @@ class RPNLossComputation(object):
             size_average=False,
         ) / (sampled_inds.numel())
 
-        objectness_loss = F.binary_cross_entropy_with_logits(
-            objectness[sampled_inds], labels[sampled_inds]
-        )
+        if self.use_loss_weighting:
+            # Compute loss_weights
+            loss_weights = self.compute_loss_weights(target_boxes_lw[sampled_inds])
+            objectness_loss = F.binary_cross_entropy_with_logits(
+                objectness[sampled_inds], labels[sampled_inds], weight=loss_weights
+            )
 
-        return objectness_loss * final_scaler, box_loss * final_scaler
+        else:
+            objectness_loss = F.binary_cross_entropy_with_logits(
+                objectness[sampled_inds], labels[sampled_inds]
+            )
+
+        return objectness_loss, box_loss
 
 
     ### Probe function, return what you want and play with it in tools/probe_loss.py script
@@ -251,6 +285,68 @@ class RPNLossComputation(object):
         return matched_target_total
 
 
+#    def __call__(self, anchors, objectness, box_regression, targets, ignore_idxs=[]):
+#        """
+#        Arguments:
+#            anchors (list[list[BoxList]])
+#            objectness (list[Tensor])
+#            box_regression (list[Tensor])
+#            targets (list[BoxList])
+#            ignore_idxs: list of batch idxs that we will ignore
+#
+#        Returns:
+#            objectness_loss (Tensor)
+#            box_loss (Tensor)
+#        """
+#        # Merge anchors from all pyramid layers
+#        anchors = [cat_boxlist(anchors_per_image) for anchors_per_image in anchors]
+#        labels, regression_targets = self.prepare_targets(anchors, targets)
+#        sampled_pos_inds, sampled_neg_inds = self.fg_bg_sampler(labels)
+#        #print("sampled_pos_inds:", sampled_pos_inds[0].shape, sampled_pos_inds[1].shape, sampled_pos_inds[0].sum(), sampled_pos_inds[1].sum())
+#        #print("sampled_neg_inds:", sampled_neg_inds[0].shape, sampled_neg_inds[1].shape, sampled_neg_inds[0].sum(), sampled_neg_inds[1].sum())
+#        
+#        # If we are ignoring ALL images in the batch, set final_scaler to 0 so we zero all losses
+#        if len(ignore_idxs) == len(sampled_pos_inds):
+#            final_scaler = 0
+#
+#        # If we are ignoring none or some images in the batch, 
+#        # replace sampled_pos_inds[ignore_idxs] and sampled_neg_inds[ignore_idxs] with zero tensors
+#        # and set final_scaler to 1.
+#        else:
+#            final_scaler = 1
+#            for ignore_idx in ignore_idxs:
+#                sampled_pos_inds[ignore_idx] = torch.zeros_like(sampled_pos_inds[ignore_idx])
+#                sampled_neg_inds[ignore_idx] = torch.zeros_like(sampled_neg_inds[ignore_idx])
+#
+#            #print("AFTER: sampled_pos_inds:", sampled_pos_inds[0].shape, sampled_pos_inds[1].shape, sampled_pos_inds[0].sum(), sampled_pos_inds[1].sum())
+#            #print("AFTER: sampled_neg_inds:", sampled_neg_inds[0].shape, sampled_neg_inds[1].shape, sampled_neg_inds[0].sum(), sampled_neg_inds[1].sum())
+#     
+#
+#        sampled_pos_inds = torch.nonzero(torch.cat(sampled_pos_inds, dim=0)).squeeze(1)
+#        sampled_neg_inds = torch.nonzero(torch.cat(sampled_neg_inds, dim=0)).squeeze(1)
+#
+#        sampled_inds = torch.cat([sampled_pos_inds, sampled_neg_inds], dim=0)
+#
+#        objectness, box_regression = \
+#                concat_box_prediction_layers(objectness, box_regression)
+#
+#        objectness = objectness.squeeze()
+#
+#        labels = torch.cat(labels, dim=0)
+#        regression_targets = torch.cat(regression_targets, dim=0)
+#
+#        box_loss = smooth_l1_loss(
+#            box_regression[sampled_pos_inds],
+#            regression_targets[sampled_pos_inds],
+#            beta=1.0 / 9,
+#            size_average=False,
+#        ) / (sampled_inds.numel())
+#
+#        objectness_loss = F.binary_cross_entropy_with_logits(
+#            objectness[sampled_inds], labels[sampled_inds]
+#        )
+#
+#        return objectness_loss * final_scaler, box_loss * final_scaler
 
 
 # This function should be overwritten in RetinaNet
@@ -271,7 +367,12 @@ def make_rpn_loss_evaluator(cfg, box_coder):
         cfg.MODEL.RPN.BATCH_SIZE_PER_IMAGE, cfg.MODEL.RPN.POSITIVE_FRACTION
     )
 
+    lw_function = cfg.SOLVER.LOSS_WEIGHTING.FUNCTION
+    if lw_function:
+        assert(lw_function == "Linear" or lw_function == "Exponential"), "Unknown loss weighting function selected"
+
     loss_evaluator = RPNLossComputation(
+        cfg,
         matcher,
         fg_bg_sampler,
         box_coder,

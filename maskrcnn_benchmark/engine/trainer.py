@@ -75,9 +75,9 @@ def do_train(
 
         loss_dict = model(images, targets)
         
-        for k,v in loss_dict.items():
-            print(k, v)
-        exit()
+        #for k,v in loss_dict.items():
+        #    print(k, v)
+        #exit()
 
         losses = sum(loss for loss in loss_dict.values())
 

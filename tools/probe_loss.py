@@ -50,6 +50,17 @@ def do_probe(
     # Iterate over iteration-based data loader
     for iteration, (images, targets, _) in enumerate(data_loader):
         print("iteration:", iteration)
+
+        # Save GT bboxes
+        #curr_gt_boxes = torch.cat([bl.bbox for bl in targets], dim=0)
+
+        #if first_iter:
+        #    gt_boxes = curr_gt_boxes
+        #    first_iter = False
+        #else:
+        #    gt_boxes = torch.cat((gt_boxes, curr_gt_boxes), dim=0)
+        #continue
+
         # Load images and targets to device
         images = images.to(device)
         targets = [target.to(device) for target in targets]
@@ -69,6 +80,8 @@ def do_probe(
 
     # When done with iterations, save to disk
     torch.save(total, savepath)
+
+    #torch.save(gt_boxes, "./junk/gt_boxes_train50000.pt")
         
 
 

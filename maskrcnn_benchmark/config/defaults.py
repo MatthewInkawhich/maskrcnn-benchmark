@@ -480,6 +480,15 @@ _C.SOLVER.IMS_PER_BATCH = 16
 # Only set this when probing
 _C.SOLVER.PROBE = False
 
+
+### Loss weighting settings
+_C.SOLVER.LOSS_WEIGHTING = CN()
+_C.SOLVER.LOSS_WEIGHTING.FUNCTION = ""
+_C.SOLVER.LOSS_WEIGHTING.EPSILON = 0.1
+_C.SOLVER.LOSS_WEIGHTING.LINEAR_M = 500
+_C.SOLVER.LOSS_WEIGHTING.EXPONENTIAL_ALPHA = 0.005
+
+
 # ---------------------------------------------------------------------------- #
 # Specific test options
 # ---------------------------------------------------------------------------- #

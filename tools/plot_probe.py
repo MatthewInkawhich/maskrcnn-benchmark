@@ -4,8 +4,11 @@ import matplotlib.pyplot as plt
 
 
 # Load tensors
-savepath = 'probe/probe_loss_out_val.pt'
-gtsavepath = 'probe/gt_boxes_val.pt'
+#savepath = 'probe/probe_loss_out_val.pt'
+#savepath = 'probe/probe_fpn_val.pt'
+savepath = 'probe/probe_fpn_train50000.pt'
+#gtsavepath = 'probe/gt_boxes_val.pt'
+gtsavepath = 'probe/gt_boxes_train50000.pt'
 total = torch.load(savepath, map_location='cpu')
 gts = torch.load(gtsavepath, map_location='cpu')
 print("total:", total, total.shape)

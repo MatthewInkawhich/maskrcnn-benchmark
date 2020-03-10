@@ -54,9 +54,12 @@
 #echo "DDPPv2 cascadebodyhead"
 #python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/coco/faster_R50_ddppv2ss_cascadebodyhead.yaml" --ckpt "out/coco/faster_R50_ddppv2ss_cascadebodyhead/model_final.pth" --more-sizes
 #echo "DDPPv2ss cascadebodyhead"
+python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/coco/faster_R50_ddppv2_cascade_is.yaml" --ckpt "out/coco/faster_R50_ddppv2_cascade_is/model_final.pth" --more-sizes
+echo "DDPPv2 cascade IS"
 
 #--------------------------------------- CUSTOM
-python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/coco/custom/F_C4.yaml" --ckpt "out/coco/custom/F_C4/model_final.pth" --more-sizes
-echo "F_C4"
-python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/coco/custom/G_C4.yaml" --ckpt "out/coco/custom/G_C4/model_final.pth" --more-sizes
-echo "G_C4"
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/coco/custom/F_C4.yaml" --ckpt "out/coco/custom/F_C4/model_final.pth" --more-sizes
+#echo "F_C4"
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/coco/custom/G_C4.yaml" --ckpt "out/coco/custom/G_C4/model_final.pth" --more-sizes
+#echo "G_C4"
+
