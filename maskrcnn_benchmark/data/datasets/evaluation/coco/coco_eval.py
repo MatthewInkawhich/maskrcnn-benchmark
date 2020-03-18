@@ -7,6 +7,7 @@ from tqdm import tqdm
 import numpy as np
 
 from maskrcnn_benchmark.modeling.roi_heads.mask_head.inference import Masker
+from maskrcnn_benchmark.utils.comm import synchronize, get_rank
 from maskrcnn_benchmark.structures.bounding_box import BoxList
 from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
 from maskrcnn_benchmark.data import datasets
@@ -29,17 +30,39 @@ def do_coco_evaluation(
         areas = {"all": "", "small": "s", "medium": "m", "large": "l"}
         res = COCOResults("box_proposal")
         for limit in [100, 1000]:
+            #print("limit:", limit)
             for area, suffix in areas.items():
                 stats = evaluate_box_proposals(
                     predictions, dataset, area=area, limit=limit
                 )
                 key = "AR{}@{:d}".format(suffix, limit)
                 res.results["box_proposal"][key] = stats["ar"].item()
+                #print("{}: {}".format(key, stats["ar"].item()))
         logger.info(res)
         check_expected_results(res, expected_results, expected_results_sigma_tol)
         if output_folder:
             torch.save(res, os.path.join(output_folder, "box_proposals.pth"))
+
+        # If more_sizes flag is set, test more sizes
+        if more_sizes:
+            areaRng = [] 
+            areaRngLbl = []
+            for r in range(5, 505, 5): 
+                areaRng.append([(r - 5) ** 2, r ** 2]) 
+                areaRngLbl.append(str(r))
+            areaRng.append([r ** 2, 1e5 ** 2]) 
+            areaRngLbl.append('>')
+            for limit in [100, 1000]:
+                print("\n\n")
+                print("Area Range Labels:", areaRngLbl)
+                print("Average Recall @ {}".format(limit))
+                for rng, lbl in zip(areaRng, areaRngLbl):
+                    stats = evaluate_box_proposals(
+                        predictions, dataset, limit=limit, rng=rng
+                    )
+                    print("{:.3f}".format(stats["ar"].item()))
         return
+
     logger.info("Preparing results for COCO format")
     coco_results = {}
     if "bbox" in iou_types:
@@ -197,40 +220,45 @@ def prepare_for_coco_keypoint(predictions, dataset):
 
 # inspired from Detectron
 def evaluate_box_proposals(
-    predictions, dataset, thresholds=None, area="all", limit=None
+    predictions, dataset, thresholds=None, area="all", limit=None, rng=None
 ):
     """Evaluate detection proposal recall metrics. This function is a much
     faster alternative to the official COCO API recall evaluation code. However,
     it produces slightly different results.
     """
-    # Record max overlap value for each gt box
-    # Return vector of overlap values
-    areas = {
-        "all": 0,
-        "small": 1,
-        "medium": 2,
-        "large": 3,
-        "96-128": 4,
-        "128-256": 5,
-        "256-512": 6,
-        "512-inf": 7,
-    }
-    area_ranges = [
-        [0 ** 2, 1e5 ** 2],  # all
-        [0 ** 2, 32 ** 2],  # small
-        [32 ** 2, 96 ** 2],  # medium
-        [96 ** 2, 1e5 ** 2],  # large
-        [96 ** 2, 128 ** 2],  # 96-128
-        [128 ** 2, 256 ** 2],  # 128-256
-        [256 ** 2, 512 ** 2],  # 256-512
-        [512 ** 2, 1e5 ** 2],
-    ]  # 512-inf
-    assert area in areas, "Unknown area range: {}".format(area)
-    area_range = area_ranges[areas[area]]
+    if rng:
+        area_range = rng
+    else:
+        # Record max overlap value for each gt box
+        # Return vector of overlap values
+        areas = {
+            "all": 0,
+            "small": 1,
+            "medium": 2,
+            "large": 3,
+            "96-128": 4,
+            "128-256": 5,
+            "256-512": 6,
+            "512-inf": 7,
+        }
+        area_ranges = [
+            [0 ** 2, 1e5 ** 2],  # all
+            [0 ** 2, 32 ** 2],  # small
+            [32 ** 2, 96 ** 2],  # medium
+            [96 ** 2, 1e5 ** 2],  # large
+            [96 ** 2, 128 ** 2],  # 96-128
+            [128 ** 2, 256 ** 2],  # 128-256
+            [256 ** 2, 512 ** 2],  # 256-512
+            [512 ** 2, 1e5 ** 2],
+        ]  # 512-inf
+        assert area in areas, "Unknown area range: {}".format(area)
+        area_range = area_ranges[areas[area]]
+
     gt_overlaps = []
     num_pos = 0
 
     for image_id, prediction in enumerate(predictions):
+        #print("image_id:", image_id)
         original_id = dataset.id_to_img_map[image_id]
 
         img_info = dataset.get_img_info(image_id)
@@ -340,7 +368,7 @@ def evaluate_predictions_on_coco(
         areaRng = [[0, 1e5 ** 2]] 
         areaRngLbl = ['all']
 
-        for r in range(5, 305, 5): 
+        for r in range(5, 505, 5): 
             areaRng.append([(r - 5) ** 2, r ** 2]) 
             areaRngLbl.append(str(r))
 

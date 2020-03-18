@@ -140,7 +140,10 @@ def main():
 
     # Load pretrained base network weights
     checkpointer = DetectronCheckpointer(cfg, model)
-    extra_checkpoint_data = checkpointer.load(args.weights)
+    if args.weights:
+        extra_checkpoint_data = checkpointer.load(args.weights)
+    else:
+        extra_checkpoint_data = checkpointer.load(cfg.MODEL.WEIGHT)
 
     # Make data loader
     data_loader = make_data_loader(

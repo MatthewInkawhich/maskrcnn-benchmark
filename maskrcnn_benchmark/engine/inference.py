@@ -82,44 +82,53 @@ def inference(
         more_sizes=False,
         ewadaptive=False,
 ):
+
     # convert to a torch.device for efficiency
     device = torch.device(device)
     num_devices = get_world_size()
     logger = logging.getLogger("maskrcnn_benchmark.inference")
     dataset = data_loader.dataset
-    logger.info("Start evaluation on {} dataset({} images).".format(dataset_name, len(dataset)))
-    total_timer = Timer()
-    inference_timer = Timer()
-    total_timer.tic()
-    predictions = compute_on_dataset(model, data_loader, device, inference_timer, speed_only, ewadaptive)
-    # wait for all processes to complete before measuring the time
-    synchronize()
-    total_time = total_timer.toc()
-    total_time_str = get_time_str(total_time)
-    logger.info(
-        "Total run time: {} ({} s / img per device, on {} devices)".format(
-            total_time_str, total_time * num_devices / len(dataset), num_devices
+    predictions_path = os.path.join(output_folder, "predictions.pth")
+    
+    # Check if predictions list already exists on disk, if so skip the collection
+    if os.path.isfile(predictions_path):
+        print("Predictions already saved... skipping compute_on_dataset step")
+        predictions = torch.load(predictions_path)
+        print("predictions:", len(predictions))
+    else:
+        logger.info("Start evaluation on {} dataset({} images).".format(dataset_name, len(dataset)))
+        total_timer = Timer()
+        inference_timer = Timer()
+        total_timer.tic()
+        predictions = compute_on_dataset(model, data_loader, device, inference_timer, speed_only, ewadaptive)
+        # wait for all processes to complete before measuring the time
+        synchronize()
+        total_time = total_timer.toc()
+        total_time_str = get_time_str(total_time)
+        logger.info(
+            "Total run time: {} ({} s / img per device, on {} devices)".format(
+                total_time_str, total_time * num_devices / len(dataset), num_devices
+            )
         )
-    )
-    total_infer_time = get_time_str(inference_timer.total_time)
-    logger.info(
-        "Model inference time: {} ({} s / img per device, on {} devices)".format(
-            total_infer_time,
-            inference_timer.total_time * num_devices / len(dataset),
-            num_devices,
+        total_infer_time = get_time_str(inference_timer.total_time)
+        logger.info(
+            "Model inference time: {} ({} s / img per device, on {} devices)".format(
+                total_infer_time,
+                inference_timer.total_time * num_devices / len(dataset),
+                num_devices,
+            )
         )
-    )
 
-    if speed_only:
-        print("Speed only run complete! Skipping evaluation...")
-        return
+        if speed_only:
+            print("Speed only run complete! Skipping evaluation...")
+            return
 
-    predictions = _accumulate_predictions_from_multiple_gpus(predictions)
-    if not is_main_process():
-        return
+        predictions = _accumulate_predictions_from_multiple_gpus(predictions)
+        if not is_main_process():
+            return
 
-    if output_folder:
-        torch.save(predictions, os.path.join(output_folder, "predictions.pth"))
+        if output_folder:
+            torch.save(predictions, os.path.join(output_folder, "predictions.pth"))
 
     extra_args = dict(
         box_only=box_only,

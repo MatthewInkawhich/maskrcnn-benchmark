@@ -12,7 +12,7 @@ from .utils import concat_box_prediction_layers
 from ..balanced_positive_negative_sampler import BalancedPositiveNegativeSampler
 from ..utils import cat
 
-from maskrcnn_benchmark.layers import smooth_l1_loss
+from maskrcnn_benchmark.layers import smooth_l1_loss, weighted_smooth_l1_loss
 from maskrcnn_benchmark.modeling.matcher import Matcher
 from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
 from maskrcnn_benchmark.structures.boxlist_ops import cat_boxlist
@@ -133,6 +133,14 @@ class RPNLossComputation(object):
             alpha = self.cfg.SOLVER.LOSS_WEIGHTING.EXPONENTIAL_ALPHA
             weights = epsilon + (1 - epsilon) * torch.exp(-alpha * sqrt_areas)
 
+        elif self.cfg.SOLVER.LOSS_WEIGHTING.FUNCTION == 'Step':
+            #epsilon = self.cfg.SOLVER.LOSS_WEIGHTING.EPSILON
+            m = self.cfg.SOLVER.LOSS_WEIGHTING.STEP_M
+            line0 = torch.ones_like(sqrt_areas)
+            line1 = torch.zeros_like(sqrt_areas)
+            weights = torch.where(sqrt_areas <= m, line0, line1)
+
+
         else:
             print("LOSS_WEIGHTING.FUNCTION not recognized")
             exit()
@@ -191,24 +199,36 @@ class RPNLossComputation(object):
         regression_targets = torch.cat(regression_targets, dim=0)
 
 
-        box_loss = smooth_l1_loss(
-            box_regression[sampled_pos_inds],
-            regression_targets[sampled_pos_inds],
-            beta=1.0 / 9,
-            size_average=False,
-        ) / (sampled_inds.numel())
 
         if self.use_loss_weighting:
+            #print("USING LOSS WEIGHITNG")
             # Compute loss_weights
-            loss_weights = self.compute_loss_weights(target_boxes_lw[sampled_inds])
+            loss_weights_sampled = self.compute_loss_weights(target_boxes_lw[sampled_inds])
+            loss_weights_pos = self.compute_loss_weights(target_boxes_lw[sampled_pos_inds])
             objectness_loss = F.binary_cross_entropy_with_logits(
-                objectness[sampled_inds], labels[sampled_inds], weight=loss_weights
+                objectness[sampled_inds], labels[sampled_inds], weight=loss_weights_sampled
             )
 
+            box_loss = weighted_smooth_l1_loss(
+                box_regression[sampled_pos_inds],
+                regression_targets[sampled_pos_inds],
+                loss_weights_pos,
+                beta=1.0 / 9,
+            ) / (sampled_inds.numel())
+
+
         else:
+            #print("NOT USING LOSS WEIGHITNG")
             objectness_loss = F.binary_cross_entropy_with_logits(
                 objectness[sampled_inds], labels[sampled_inds]
             )
+
+            box_loss = smooth_l1_loss(
+                box_regression[sampled_pos_inds],
+                regression_targets[sampled_pos_inds],
+                beta=1.0 / 9,
+                size_average=False,
+            ) / (sampled_inds.numel())
 
         return objectness_loss, box_loss
 
@@ -366,10 +386,6 @@ def make_rpn_loss_evaluator(cfg, box_coder):
     fg_bg_sampler = BalancedPositiveNegativeSampler(
         cfg.MODEL.RPN.BATCH_SIZE_PER_IMAGE, cfg.MODEL.RPN.POSITIVE_FRACTION
     )
-
-    lw_function = cfg.SOLVER.LOSS_WEIGHTING.FUNCTION
-    if lw_function:
-        assert(lw_function == "Linear" or lw_function == "Exponential"), "Unknown loss weighting function selected"
 
     loss_evaluator = RPNLossComputation(
         cfg,

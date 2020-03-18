@@ -25,16 +25,27 @@ MODEL:
     FEATURE_EXTRACTOR: "FPN2MLPFeatureExtractor"
     PREDICTOR: "FPNPredictor"
     NUM_CLASSES: 81
-
 DATASETS:
-  TRAIN: ("coco_2017_train",)
-  #TRAIN: ("coco_2017_val",)
-
+  #TRAIN: ("coco_2017_train",)
+  TRAIN: ("coco_2017_val",)
+  TEST: ("coco_2017_val",)
 DATALOADER:
   SIZE_DIVISIBILITY: 16
-
 SOLVER:
-  MAX_ITER: 5000
-  #MAX_ITER: 500
-  IMS_PER_BATCH: 10
+  IMS_PER_BATCH: 2  # 4 GPUs * 2 ims/GPU
+  BASE_LR: 0.01
+  WEIGHT_DECAY: 0.0001
+  STEPS: (120000, 160000)
+  MAX_ITER: 180000
+  CHECKPOINT_PERIOD: 10000
   PROBE: True
+  LOSS_WEIGHTING:
+    FUNCTION: "Exponential"
+    #FUNCTION: ""
+    EPSILON: 0.1
+    EXPONENTIAL_ALPHA: 0.1
+TEST:
+  IMS_PER_BATCH: 8
+  DETECTIONS_PER_IMG: 100
+
+OUTPUT_DIR: "./out/coco/loss_weighting/play"

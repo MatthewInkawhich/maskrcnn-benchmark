@@ -35,4 +35,7 @@
 
 
 # Loss weighting
-python ./tools/train_net.py --config-file "configs/coco/loss_weighting/faster_R50_fpn_lw_exp_A.yaml"
+#python ./tools/train_net.py --config-file "configs/coco/loss_weighting/play.yaml"
+
+# RPN only
+python ./tools/train_net.py --config-file "configs/coco/rpn_only/rpn_R50_fpn.yaml"

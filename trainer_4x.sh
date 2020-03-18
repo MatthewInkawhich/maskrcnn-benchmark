@@ -91,4 +91,26 @@
 ### Loss Weighting
 #python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/loss_weighting/faster_R50_fpn_lw_exp_A.yaml"
 #python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/loss_weighting/faster_R50_fpn_lw_exp_B.yaml"
-python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/loss_weighting/faster_R50_fpn_lw_exp_C.yaml"
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/loss_weighting/faster_R50_fpn_lw_exp_C.yaml"
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/loss_weighting/faster_R50_fpn_lw_exp_D.yaml" --more-sizes
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/loss_weighting/faster_R50_fpn_lw_exp_E.yaml" --more-sizes
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/loss_weighting/faster_R50_fpn_lw_exp_F.yaml" --more-sizes
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/loss_weighting/faster_R50_fpn_lw_exp_G.yaml" --more-sizes
+
+
+#------------------------------------------------
+### Loss Weighting -- RPN Only
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/rpn_only/rpn_R50_C4.yaml" --more-sizes
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/rpn_only/rpn_R50_fpn.yaml" --more-sizes
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/rpn_only/rpn_R50_fpn_exp1.yaml" --more-sizes
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/rpn_only/rpn_R50_fpn_exp2.yaml" --more-sizes
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/rpn_only/rpn_R50_fpn_exp3.yaml" --more-sizes
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/rpn_only/rpn_R50_fpn_exp4.yaml" --more-sizes
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/rpn_only/rpn_R50_fpn_exp5.yaml"
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/rpn_only/rpn_R50_fpn_exp6.yaml"
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/rpn_only/rpn_R50_fpn_exp7.yaml"
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/rpn_only/rpn_R50_fpn_exp8.yaml"
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/rpn_only/rpn_R50_fpn_exp9.yaml"
+python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/rpn_only/rpn_R50_fpn_exp10.yaml"
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/rpn_only/rpn_R50_fpn_step1.yaml"
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/rpn_only/rpn_R50_fpn_step2.yaml"

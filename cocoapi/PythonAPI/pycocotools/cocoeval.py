@@ -482,18 +482,19 @@ class COCOeval:
                 stats[11] = _summarize(0, areaRng='xlarge', maxDets=self.params.maxDets[2])
             else:
                 if more_sizes:
-                    stats = np.zeros((124,))
+                    #stats = np.zeros((124,))
+                    stats = np.zeros((204,))
                     # AP
                     stats[0] = _summarize(1, maxDets=self.params.maxDets[2], print_class_wise=True)
-                    for i, r in enumerate(range(5, 305, 5)):
+                    for i, r in enumerate(range(5, 505, 5)):
                         stats[i + 1] = _summarize(1, areaRng=str(r), maxDets=self.params.maxDets[2])
                     stats[i + 2] = _summarize(1, areaRng='>', maxDets=self.params.maxDets[2])
         
                     # AR
-                    stats[62] = _summarize(0, maxDets=self.params.maxDets[2])
-                    for i, r in enumerate(range(5, 305, 5)):
-                        stats[62 + i + 1] = _summarize(0, areaRng=str(r), maxDets=self.params.maxDets[2])
-                    stats[62 + i + 2] = _summarize(0, areaRng='>', maxDets=self.params.maxDets[2])
+                    stats[102] = _summarize(0, maxDets=self.params.maxDets[2])
+                    for i, r in enumerate(range(5, 505, 5)):
+                        stats[102 + i + 1] = _summarize(0, areaRng=str(r), maxDets=self.params.maxDets[2])
+                    stats[102 + i + 2] = _summarize(0, areaRng='>', maxDets=self.params.maxDets[2])
 
                 else:
                     stats = np.zeros((12,))
