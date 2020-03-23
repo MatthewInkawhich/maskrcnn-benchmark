@@ -7,7 +7,7 @@ file
 import torch
 from torch.nn import functional as F
 
-from .utils import concat_box_prediction_layers
+from .utils import concat_box_prediction_layers, permute_and_flatten
 
 from ..balanced_positive_negative_sampler import BalancedPositiveNegativeSampler
 from ..utils import cat
@@ -162,6 +162,17 @@ class RPNLossComputation(object):
             objectness_loss (Tensor)
             box_loss (Tensor)
         """
+
+        # Play:
+        #old = torch.zeros((1, 60, 1, 1), dtype=torch.float32)
+        #old[0,58,0,0] = 1.0
+        #new = permute_and_flatten(old, 1, 15, 4, 1, 1)
+        #print(new, new.shape)
+        #new = new.reshape(-1, 4)
+        #print(new, new.shape)
+        #exit()
+
+
         # Merge anchors from all pyramid layers
         anchors = [cat_boxlist(anchors_per_image) for anchors_per_image in anchors]
         # Get labels, regression_targets and matched_targets_list 
@@ -199,12 +210,12 @@ class RPNLossComputation(object):
         regression_targets = torch.cat(regression_targets, dim=0)
 
 
-
         if self.use_loss_weighting:
             #print("USING LOSS WEIGHITNG")
             # Compute loss_weights
             loss_weights_sampled = self.compute_loss_weights(target_boxes_lw[sampled_inds])
             loss_weights_pos = self.compute_loss_weights(target_boxes_lw[sampled_pos_inds])
+
             objectness_loss = F.binary_cross_entropy_with_logits(
                 objectness[sampled_inds], labels[sampled_inds], weight=loss_weights_sampled
             )

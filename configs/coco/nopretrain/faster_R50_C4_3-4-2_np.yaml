@@ -1,7 +1,7 @@
 MODEL:
   META_ARCHITECTURE: "GeneralizedRCNN"
   BACKBONE:
-    CONV_BODY: "R-50-C4"
+    CONV_BODY: "R-50-3_4_2"
     FREEZE_CONV_BODY_AT: -1
   #WEIGHT: "catalog://ImageNetPretrained/MSRA/R-50"
   RPN:
@@ -31,10 +31,11 @@ MODEL:
     POOLER_SCALES: (0.0625,)  # 1 / 16
     #POOLER_SCALES: (0.03125,)  # 1 / 32
     NUM_CLASSES: 81
+
   RESNETS:
-    DILATIONS: (1,2,2)
     STEM_FUNC: "StemWithGN"
     TRANS_FUNC: "BottleneckWithGN"
+
 
 DATASETS:
   TRAIN: ("coco_2017_train",)
@@ -52,4 +53,4 @@ TEST:
   IMS_PER_BATCH: 8
   DETECTIONS_PER_IMG: 100
 
-OUTPUT_DIR: "./out/coco/nopretrain/faster_R50_C4_dilation2_np"
+OUTPUT_DIR: "./out/coco/nopretrain/faster_R50_C4_3-4-2_np"

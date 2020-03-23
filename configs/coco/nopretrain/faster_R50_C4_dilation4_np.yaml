@@ -52,4 +52,4 @@ TEST:
   IMS_PER_BATCH: 8
   DETECTIONS_PER_IMG: 100
 
-OUTPUT_DIR: "./out/coco/faster_R50_dilation4_np"
+OUTPUT_DIR: "./out/coco/nopretrain/faster_R50_C4_dilation4_np"

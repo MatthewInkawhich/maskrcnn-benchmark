@@ -10,8 +10,8 @@ MODEL:
 
     #ANCHOR_STRIDE: (4,)
     #ANCHOR_STRIDE: (8,)
-    ANCHOR_STRIDE: (16,)
-    #ANCHOR_STRIDE: (32,)
+    #ANCHOR_STRIDE: (16,)
+    ANCHOR_STRIDE: (32,)
 
     ASPECT_RATIOS: (0.5, 1.0, 2.0)
     BATCH_SIZE_PER_IMAGE: 256
@@ -28,13 +28,13 @@ MODEL:
     POOLER_RESOLUTION: 14
     #POOLER_SCALES: (0.25,)  # 1 / 4
     #POOLER_SCALES: (0.125,)  # 1 / 8
-    POOLER_SCALES: (0.0625,)  # 1 / 16
-    #POOLER_SCALES: (0.03125,)  # 1 / 32
+    #POOLER_SCALES: (0.0625,)  # 1 / 16
+    POOLER_SCALES: (0.03125,)  # 1 / 32
     NUM_CLASSES: 81
   RESNETS:
-    DILATIONS: (1,2,2)
     STEM_FUNC: "StemWithGN"
     TRANS_FUNC: "BottleneckWithGN"
+
 
 DATASETS:
   TRAIN: ("coco_2017_train",)
@@ -52,4 +52,4 @@ TEST:
   IMS_PER_BATCH: 8
   DETECTIONS_PER_IMG: 100
 
-OUTPUT_DIR: "./out/coco/nopretrain/faster_R50_C4_dilation2_np"
+OUTPUT_DIR: "./out/coco/nopretrain/faster_R50_C4_stride32_np"

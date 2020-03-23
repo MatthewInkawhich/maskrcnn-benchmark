@@ -95,6 +95,8 @@ def inference(
         print("Predictions already saved... skipping compute_on_dataset step")
         predictions = torch.load(predictions_path)
         print("predictions:", len(predictions))
+        if not is_main_process():
+            return
     else:
         logger.info("Start evaluation on {} dataset({} images).".format(dataset_name, len(dataset)))
         total_timer = Timer()

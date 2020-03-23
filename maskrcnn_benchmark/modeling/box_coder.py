@@ -28,7 +28,6 @@ class BoxCoder(object):
             reference_boxes (Tensor): reference boxes
             proposals (Tensor): boxes to be encoded
         """
-
         TO_REMOVE = 1  # TODO remove
         ex_widths = proposals[:, 2] - proposals[:, 0] + TO_REMOVE
         ex_heights = proposals[:, 3] - proposals[:, 1] + TO_REMOVE
@@ -47,6 +46,7 @@ class BoxCoder(object):
         targets_dh = wh * torch.log(gt_heights / ex_heights)
 
         targets = torch.stack((targets_dx, targets_dy, targets_dw, targets_dh), dim=1)
+
         return targets
 
     def decode(self, rel_codes, boxes):

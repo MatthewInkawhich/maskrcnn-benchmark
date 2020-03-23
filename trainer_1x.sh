@@ -21,7 +21,7 @@
 
 #python ./tools/train_net.py --config-file "configs/coco/faster_R50_ddppv2_cascade_is.yaml" --empty-cache
 
-#python ./tools/train_net.py --config-file "configs/coco/faster_R50_C4_play.yaml"
+python ./tools/train_net.py --config-file "configs/coco/faster_R50_C4_play.yaml"
 
 
 # Custom
@@ -38,4 +38,4 @@
 #python ./tools/train_net.py --config-file "configs/coco/loss_weighting/play.yaml"
 
 # RPN only
-python ./tools/train_net.py --config-file "configs/coco/rpn_only/rpn_R50_fpn.yaml"
+#python ./tools/train_net.py --config-file "configs/coco/rpn_only/rpn_R50_fpn.yaml"
