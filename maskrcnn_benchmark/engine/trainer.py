@@ -97,7 +97,7 @@ def do_train(
 
         # Recommended fix to stop growing memory
         # https://github.com/facebookresearch/maskrcnn-benchmark/issues/884#issuecomment-508618338
-        if empty_cache and iteration % 100 == 0:
+        if empty_cache and iteration % 10 == 0:
             torch.cuda.empty_cache()
 
         batch_time = time.time() - end

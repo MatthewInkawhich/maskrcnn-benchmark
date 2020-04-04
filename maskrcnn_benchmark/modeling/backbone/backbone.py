@@ -11,6 +11,7 @@ from . import ddpp
 from . import custom_resnet
 from . import selector
 from . import resreg
+from . import strider
 
 
 @registry.BACKBONES.register("R-50-C4")
@@ -118,6 +119,36 @@ def build_custom_resnet_backbone(cfg):
     body = custom_resnet.CustomResNet(cfg)
     model = nn.Sequential(OrderedDict([("body", body)]))
     model.out_channels = cfg.MODEL.CUSTOM_RESNET.OUT_CHANNELS
+    return model
+
+
+@registry.BACKBONES.register("STRIDER-C4")
+def build_custom_resnet_backbone(cfg):
+    body = strider.Strider(cfg)
+    model = nn.Sequential(OrderedDict([("body", body)]))
+    model.out_channels = cfg.MODEL.STRIDER.OUT_CHANNELS
+    return model
+
+@registry.BACKBONES.register("STRIDER-FPN")
+def build_custom_resnet_backbone(cfg):
+    body = strider.Strider(cfg)
+    body_out_channels = cfg.MODEL.STRIDER.OUT_CHANNELS
+    out_channels = cfg.MODEL.STRIDER.FPN_OUT_CHANNELS
+    fpn = fpn_module.FPN(
+        in_channels_list=[
+            body_out_channels // 8,
+            body_out_channels // 4,
+            body_out_channels // 2,
+            body_out_channels,
+        ],
+        out_channels=out_channels,
+        conv_block=conv_with_kaiming_uniform(
+            cfg.MODEL.FPN.USE_GN, cfg.MODEL.FPN.USE_RELU
+        ),
+        top_blocks=fpn_module.LastLevelMaxPool(),
+    )
+    model = nn.Sequential(OrderedDict([("body", body), ("fpn", fpn)]))
+    model.out_channels = out_channels
     return model
 
 

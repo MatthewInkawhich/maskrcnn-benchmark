@@ -317,6 +317,14 @@ class ResNet(nn.Module):
             #print(stage_name, x, x.size())
             if self.return_features[stage_name]:
                 outputs.append(x)
+
+        #for i in range(len(outputs)):
+        #    print("\ni:", i)
+        #    print("shape:", outputs[i].shape)
+        #    print("mean activation:", outputs[i].mean())
+        #    print("frac of nonzero activations:", (outputs[i] != 0).sum().float() / outputs[i].numel())
+        #exit()
+        
         return outputs
 
 

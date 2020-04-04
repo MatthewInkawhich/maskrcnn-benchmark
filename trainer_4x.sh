@@ -30,7 +30,7 @@
 ### COCO sweeps
 # Resolution
 #python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/faster_R50_C4_vanilla.yaml"
-python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/nopretrain/faster_R50_C4_stride4_np.yaml" --empty-cache --more-sizes
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/nopretrain/faster_R50_C4_stride4_np.yaml" --empty-cache --more-sizes
 #python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/nopretrain/faster_R50_C4_stride8_np.yaml" --empty-cache --more-sizes
 #python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/nopretrain/faster_R50_C4_stride32_np.yaml" --more-sizes
 
@@ -60,6 +60,7 @@ python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --con
 
 ### COCO FPN
 #python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/faster_R50_fpn.yaml"
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/faster_R50_fpn_play.yaml"
 
 #------------------------------------------------
 ### DDPP
@@ -114,3 +115,9 @@ python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --con
 #python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/rpn_only/rpn_R50_fpn_exp10.yaml"
 #python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/rpn_only/rpn_R50_fpn_step1.yaml"
 #python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/rpn_only/rpn_R50_fpn_step2.yaml"
+
+
+#------------------------------------------------
+### Strider
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/strider/faster_R50_strider_control_fpn.yaml" --more-sizes
+python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/strider/faster_R50_strider_vanilla.yaml" --empty-cache --more-sizes

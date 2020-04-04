@@ -21,10 +21,11 @@
 
 #python ./tools/train_net.py --config-file "configs/coco/faster_R50_ddppv2_cascade_is.yaml" --empty-cache
 
-python ./tools/train_net.py --config-file "configs/coco/faster_R50_C4_play.yaml"
+#python ./tools/train_net.py --config-file "configs/coco/faster_R50_C4_play.yaml"
 
 
 # Custom
+#python ./tools/train_net.py --config-file "configs/coco/custom/play_C4.yaml" --empty-cache
 #python ./tools/train_net.py --config-file "configs/coco/custom/vanilla_C4.yaml" --empty-cache
 #python ./tools/train_net.py --config-file "configs/coco/custom/A_C4.yaml" --empty-cache
 #python ./tools/train_net.py --config-file "configs/coco/custom/B_C4.yaml" --empty-cache
@@ -39,3 +40,12 @@ python ./tools/train_net.py --config-file "configs/coco/faster_R50_C4_play.yaml"
 
 # RPN only
 #python ./tools/train_net.py --config-file "configs/coco/rpn_only/rpn_R50_fpn.yaml"
+
+
+#python ./tools/train_net.py --config-file "configs/coco/nopretrain/faster_R50_fpn_np_play.yaml" --empty-cache
+#python ./tools/train_net.py --config-file "configs/coco/faster_R50_fpn_play.yaml"
+
+### STRIDER
+#python ./tools/train_net.py --config-file "configs/coco/strider/faster_R50_strider_vanilla.yaml" --empty-cache
+#python ./tools/train_net.py --config-file "configs/coco/strider/faster_R50_strider_play.yaml" --empty-cache
+python ./tools/train_net.py --config-file "configs/coco/strider/faster_R50_strider_play.yaml" --empty-cache

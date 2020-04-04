@@ -330,6 +330,49 @@ _C.MODEL.DDPP.IRPN_LOSS_WEIGHT = 0.1
 _C.MODEL.DDPP.IRPN_CONFIG = [[[32], [0.5, 1.0, 2.0], [4], 0], [[32, 64], [0.5, 1.0, 2.0], [4], 0], [[32, 64, 128], [0.5, 1.0, 2.0], [4], 0], [[32, 64, 128, 256], [0.5, 1.0, 2.0], [4], 0]] # For each IRPN: [ANCHOR_SIZES, ASPECT_RATIOS, ANCHOR_STRIDE, STRADDLE_THRESH]
 
 
+# ---------------------------------------------------------------------------- #
+# Strider Options
+# ---------------------------------------------------------------------------- #
+_C.MODEL.STRIDER = CN()
+# Each element is a conv in the stem module [kernel, stride, padding]
+_C.MODEL.STRIDER.STEM_CONFIG = [[7,2,3], [3,2,1]]
+_C.MODEL.STRIDER.STEM_CHANNELS = [64, 64]
+_C.MODEL.STRIDER.STEM_OUT_CHANNELS = 64
+_C.MODEL.STRIDER.BODY_CHANNELS = [
+        [64, 64, 256], [256, 64, 256], [256, 64, 256],
+        [256, 128, 512], [512, 128, 512], [512, 128, 512], [512, 128, 512],
+        [512, 256, 1024], [1024, 256, 1024], [1024, 256, 1024], [1024, 256, 1024], [1024, 256, 1024], [1024, 256, 1024],
+        [1024, 512, 2048], [2048, 512, 2048], [2048, 512, 2048],
+]
+# Define where to sprinkle in regular bottlenecks among the StriderBlocks.
+# Length of this list must match STRIDER.BODY_CHANNELS.
+# Individual elements must be 2 element lists of [stride, dilation].
+#_C.MODEL.STRIDER.REG_BOTTLENECKS = [[1, 1], [1, 1], [1, 1],[2, 1], [1, 1], [1, 1], [1, 1],[2, 1], [1, 1], [1, 1], [1, 1], [1, 1], [1, 1],[2, 1], [1, 1], [1, 1]]
+#_C.MODEL.STRIDER.REG_BOTTLENECKS = [[1, 1], [], [],[], [], [], [],[], [], [], [], [], [],[], [], []]
+
+# Specify what kind of blocks to use, and block configs. 
+# Note: [0, [2, 1]] means: 0=reg bottleneck, [2, 1]=stride=2,dilation=1
+#       [1, [2, 1, 0.5]] means: 1=striderblock, [2, 1, 0.5]=strides to use (3 branches here)
+_C.MODEL.STRIDER.BODY_CONFIG = [[0, [1, 1]], [0, [1, 1]], [0, [1, 1]], [0, [2, 1]], [0, [1, 1]], [0, [1, 1]], [0, [1, 1]], [0, [2, 1]], [0, [1, 1]], [0, [1, 1]], [0, [1, 1]], [0, [1, 1]], [0, [1, 1]], [0, [2, 1]], [0, [1, 1]], [0, [1, 1]]]
+
+# Specifies the StriderBlock feature index that we want to fuse into. For example,
+# a FUSEINTO of 2 means that we want to fuse into the largest (2x up) feature map.
+# Want to change this to adaptive in future.
+_C.MODEL.STRIDER.STRIDERBLOCK_FUSEINTO_INDEXES = [
+        1, 1, 1,
+        0, 1, 1, 1,
+        0, 1, 1, 1, 1, 1,
+        0, 1, 1,
+]
+# Specifies where we want to return features from (i.e. what outputs to send to FPN)
+_C.MODEL.STRIDER.RETURN_FEATURES = [
+        False, False, True,
+        False, False, False, True,
+        False, False, False, False, False, True,
+        False, False, True,
+]
+_C.MODEL.STRIDER.OUT_CHANNELS = 2048
+_C.MODEL.STRIDER.FPN_OUT_CHANNELS = 256
 
 
 # ---------------------------------------------------------------------------- #

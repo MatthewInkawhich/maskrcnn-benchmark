@@ -37,6 +37,8 @@ def train(cfg, local_rank, distributed, primer="", empty_cache=False):
     model = build_detection_model(cfg)
     if get_rank() == 0:
         print(model)
+        for n, p in model.named_parameters():
+            print(n)
         print("params:", sum(p.numel() for p in model.parameters()))
     #exit()
     device = torch.device(cfg.MODEL.DEVICE)

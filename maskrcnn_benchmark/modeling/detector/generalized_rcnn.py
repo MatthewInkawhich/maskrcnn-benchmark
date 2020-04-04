@@ -86,6 +86,7 @@ class GeneralizedRCNN(nn.Module):
         #print("proposals:", proposals)
         #for idx, p in enumerate(proposals):
         #    print("proposal[{}]:".format(idx), p)
+        #print("proposal_losses:", proposal_losses)
         #exit()
 
         if self.roi_heads:
@@ -98,7 +99,8 @@ class GeneralizedRCNN(nn.Module):
         #print("roi_head.x:", x.size())
         #print("roi_head.result:", len(result))
         #for idx, r in enumerate(result):
-        #    print("result[{}]:".format(idx), r, r.get_field('labels'), r.get_field('scores'))
+        #    print("result[{}]:".format(idx), r, r.get_field('labels'))
+        #print("detector_losses:", detector_losses)
         #exit()
 
 
