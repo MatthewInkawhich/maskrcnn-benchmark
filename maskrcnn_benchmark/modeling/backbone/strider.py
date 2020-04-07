@@ -5,6 +5,7 @@ Define the Strider backbone module.
 """
 from collections import namedtuple
 import math
+import random
 
 import torch
 import torch.nn.functional as F
@@ -44,8 +45,8 @@ class Strider(nn.Module):
         super(Strider, self).__init__()
         # Assert correct config format
         assert (len(cfg.MODEL.STRIDER.STEM_CONFIG) == len(cfg.MODEL.STRIDER.STEM_CHANNELS)), "Stem config must equal stem channels"
-        assert (len(cfg.MODEL.STRIDER.BODY_CHANNELS) == len(cfg.MODEL.STRIDER.BODY_CONFIGS)), "Body channels config must equal body configs"
-        assert (len(cfg.MODEL.STRIDER.BODY_CHANNELS) == len(cfg.MODEL.STRIDER.STRIDERBLOCK_FUSEINTO_INDEXES)), "Body channels config must equal striderblock fuseinto indexes"
+        assert (len(cfg.MODEL.STRIDER.BODY_CHANNELS) == len(cfg.MODEL.STRIDER.BODY_CONFIG)), "Body channels config must equal body config"
+        assert (len(cfg.MODEL.STRIDER.BODY_CHANNELS) == len(cfg.MODEL.STRIDER.OUTPUT_SIZES)), "Body channels config must equal output_sizes"
         assert (len(cfg.MODEL.STRIDER.BODY_CHANNELS) == len(cfg.MODEL.STRIDER.RETURN_FEATURES)), "Body channels config must equal return features"
 
         # Construct Stem
@@ -54,10 +55,12 @@ class Strider(nn.Module):
         # Construct Blocks
         self.block_names = []
         self.return_features = {}
-        self.fuseinto_indexes = cfg.MODEL.STRIDER.STRIDERBLOCK_FUSEINTO_INDEXES
+        self.output_sizes = cfg.MODEL.STRIDER.OUTPUT_SIZES
         body_channels = cfg.MODEL.STRIDER.BODY_CHANNELS
-        body_configs = cfg.MODEL.STRIDER.BODY_CONFIGS
+        body_config = cfg.MODEL.STRIDER.BODY_CONFIG
         return_features = cfg.MODEL.STRIDER.RETURN_FEATURES
+        stride_option = cfg.MODEL.STRIDER.STRIDE_OPTION
+        random_dilations = cfg.MODEL.STRIDER.RANDOM_DILATIONS
         for i in range(len(body_channels)):
             name = "block" + str(i)
             in_channels = body_channels[i][0]
@@ -65,9 +68,9 @@ class Strider(nn.Module):
             out_channels = body_channels[i][2]
 
             # If the current element of reg_bottlenecks is not empty, build a regular Bottleneck
-            if body_configs[i][0] == 0:
-                stride = body_configs[i][1][0]
-                dilation = body_configs[i][1][1]
+            if body_config[i][0] == 0:
+                stride = body_config[i][1][0]
+                dilation = body_config[i][1][1]
                 block = Bottleneck(
                             in_channels=in_channels,
                             bottleneck_channels=bottleneck_channels,
@@ -82,13 +85,14 @@ class Strider(nn.Module):
                             in_channels=in_channels,
                             bottleneck_channels=bottleneck_channels,
                             out_channels=out_channels,
+                            stride_option=stride_option,
+                            random_dilations=random_dilations,
                         )
 
             self.add_module(name, block)
             self.block_names.append(name)
             self.return_features[name] = return_features[i]
                 
-
 
     def forward(self, x):
         """
@@ -102,7 +106,7 @@ class Strider(nn.Module):
         x = self.stem(x)
         #print("stem:", x.shape)
         for i, block_name in enumerate(self.block_names):
-            x = getattr(self, block_name)(x, self.fuseinto_indexes[i])
+            x = getattr(self, block_name)(x, self.output_sizes[i])
             #print(i, block_name, x.shape)
             if self.return_features[block_name]:
                 #print("Adding to return list")
@@ -171,12 +175,14 @@ class StriderBlock(nn.Module):
         in_channels,
         bottleneck_channels,
         out_channels,
-        num_groups=1,
+        stride_option,
         norm_func=group_norm,
+        random_dilations=False
     ):
         super(StriderBlock, self).__init__()
         
-        self.num_groups = num_groups
+        self.stride_option = stride_option
+        self.random_dilations = random_dilations
 
         ### Residual layer
         self.residual = nn.Sequential(
@@ -206,7 +212,7 @@ class StriderBlock(nn.Module):
         # Conv2 must be represented by a tensor instead of a Module, as we
         # need to use the weights with different strides.
         self.conv2_weight = nn.Parameter(
-            torch.Tensor(bottleneck_channels, bottleneck_channels // num_groups, 3, 3)
+            torch.Tensor(bottleneck_channels, bottleneck_channels, 3, 3)
         )
         nn.init.kaiming_uniform_(self.conv2_weight, a=1)
 
@@ -227,7 +233,7 @@ class StriderBlock(nn.Module):
 
 
 
-    def forward(self, x, fuseinto):
+    def forward(self, x, output_size):
         # Store copy of input feature
         identity = x
 
@@ -240,66 +246,108 @@ class StriderBlock(nn.Module):
         conv1_out = F.relu_(out)
     
         # Forward thru all branches
-        # 2x DOWN branch
         branch_outputs = []
-        # Conv2
-        out = F.conv2d(conv1_out, self.conv2_weight, stride=2, padding=1, groups=self.num_groups)
-        out = self.bn2(out)
-        out = F.relu_(out)
-        # Conv3
-        out = self.conv3(out)
-        out = self.bn3(out)
-        # Add residual
-        out += F.avg_pool2d(residual_out, kernel_size=3, stride=2, padding=1)
-        out = F.relu_(out)
-        branch_outputs.append(out)
+
+        # Generate random dilation if necessary (apply this dilation to all branches)
+        if self.random_dilations:
+            dilation = random.randint(1, 3)
+        else:
+            dilation = 1
+
+        # 2x DOWN branch
+        if self.stride_option in [0, 1, 2]:
+            # Conv2
+            out = F.conv2d(conv1_out, self.conv2_weight, stride=2, padding=dilation, dilation=dilation)
+            out = self.bn2(out)
+            out = F.relu_(out)
+            # Conv3
+            out = self.conv3(out)
+            out = self.bn3(out)
+            # Add residual
+            out += F.avg_pool2d(residual_out, kernel_size=3, stride=2, padding=1)
+            out = F.relu_(out)
+            branch_outputs.append(out)
 
         # 1x SAME branch
-        # Conv2
-        out = F.conv2d(conv1_out, self.conv2_weight, stride=1, padding=1, groups=self.num_groups)
-        out = self.bn2(out)
-        out = F.relu_(out)
-        # Conv3
-        out = self.conv3(out)
-        out = self.bn3(out)
-        # Add residual
-        out += residual_out
-        out = F.relu_(out)
-        branch_outputs.append(out)
+        if self.stride_option in [0, 1, 3]:
+            # Conv2
+            out = F.conv2d(conv1_out, self.conv2_weight, stride=1, padding=dilation, dilation=dilation)
+            out = self.bn2(out)
+            out = F.relu_(out)
+            # Conv3
+            out = self.conv3(out)
+            out = self.bn3(out)
+            # Add residual
+            out += residual_out
+            out = F.relu_(out)
+            branch_outputs.append(out)
 
         # 2x UP branch
-        # (T)Conv2
-        out = F.conv_transpose2d(conv1_out, self.conv2_weight, stride=2, padding=1, output_padding=1, groups=self.num_groups)
-        out = self.bn2(out)
-        out = F.relu_(out)
-        # Conv3
-        out = self.conv3(out)
-        out = self.bn3(out)
-        # Add residual
-        out += F.interpolate(residual_out, size=out.shape[-2:], mode='bilinear', align_corners=False)
-        out = F.relu_(out)
-        branch_outputs.append(out)
+        if self.stride_option in [0, 2, 3]:
+            # (T)Conv2
+            # Note: We want the Transposed conv with stride=2 to act like a conv with stride=1/2, 
+            #       so we have to permute the in/out channels and flip the kernels to match the implementation.
+            out = F.conv_transpose2d(conv1_out, self.conv2_weight.flip([2, 3]).permute(1, 0, 2, 3), stride=2, padding=dilation, output_padding=1, dilation=dilation)
+            out = self.bn2(out)
+            out = F.relu_(out)
+            # Conv3
+            out = self.conv3(out)
+            out = self.bn3(out)
+            # Add residual
+            out += F.interpolate(residual_out, size=out.shape[-2:], mode='bilinear', align_corners=False)
+            out = F.relu_(out)
+            branch_outputs.append(out)
 
         #print("\n")
         #for i in range(len(branch_outputs)):
         #    print(i, branch_outputs[i].shape)
 
         # Fuse features
-        if fuseinto == 0:
-            out = (branch_outputs[1] + F.avg_pool2d(branch_outputs[2], kernel_size=3, stride=2, padding=1))
-            out = (branch_outputs[0] + F.avg_pool2d(out, kernel_size=3, stride=2, padding=1))
-        elif fuseinto == 1:
-            out = (branch_outputs[1] + F.interpolate(branch_outputs[0], size=branch_outputs[1].shape[-2:], mode='bilinear', align_corners=False))
-            out = (out + F.avg_pool2d(branch_outputs[2], kernel_size=3, stride=2, padding=1))
-        elif fuseinto == 2:
-            out = (branch_outputs[1] + F.interpolate(branch_outputs[0], size=branch_outputs[1].shape[-2:], mode='bilinear', align_corners=False))
-            out = (branch_outputs[2] + F.interpolate(out, size=branch_outputs[2].shape[-2:], mode='bilinear', align_corners=False))
-        else:
-            print("Error: Invalid fuseinto parameter in StriderBlock forward function")
-            exit()
-        
-        #out = F.relu_(out)
-        return out / 1.5
+        if self.stride_option == 0:
+            if output_size == 0:
+                out = branch_outputs[1] + F.avg_pool2d(branch_outputs[2], kernel_size=3, stride=2, padding=1)
+                out = branch_outputs[0] + F.avg_pool2d(out, kernel_size=3, stride=2, padding=1)
+            elif output_size == 1:
+                out = branch_outputs[1] + F.interpolate(branch_outputs[0], size=branch_outputs[1].shape[-2:], mode='bilinear', align_corners=False)
+                out = out + F.avg_pool2d(branch_outputs[2], kernel_size=3, stride=2, padding=1)
+            elif output_size == 2:
+                out = branch_outputs[1] + F.interpolate(branch_outputs[0], size=branch_outputs[1].shape[-2:], mode='bilinear', align_corners=False)
+                out = branch_outputs[2] + F.interpolate(out, size=branch_outputs[2].shape[-2:], mode='bilinear', align_corners=False)
+            else:
+                print("Error: Invalid output_size parameter in StriderBlock forward function")
+                exit()
+
+        if self.stride_option == 1:
+            if output_size == 0:
+                out = branch_outputs[0] + F.avg_pool2d(branch_outputs[1], kernel_size=3, stride=2, padding=1)
+            elif output_size == 1:
+                out = branch_outputs[1] + F.interpolate(branch_outputs[0], size=branch_outputs[1].shape[-2:], mode='bilinear', align_corners=False)
+            else:
+                print("Error: Invalid output_size parameter in StriderBlock forward function")
+                exit()
+
+        if self.stride_option == 2:
+            if output_size == 0:
+                out = F.avg_pool2d(branch_outputs[1], kernel_size=3, stride=2, padding=1)
+                out = branch_outputs[0] + F.avg_pool2d(out, kernel_size=3, stride=2, padding=1)
+            elif output_size == 1:
+                out = F.avg_pool2d(branch_outputs[1], kernel_size=3, stride=2, padding=1)
+                out = out + F.interpolate(branch_outputs[0], size=out.shape[-2:], mode='bilinear', align_corners=False)
+            else:
+                print("Error: Invalid output_size parameter in StriderBlock forward function")
+                exit()
+
+        if self.stride_option == 3:
+            if output_size == 0:
+                out = F.avg_pool2d(branch_outputs[1], kernel_size=3, stride=2, padding=1)
+                out = F.avg_pool2d(branch_outputs[0], kernel_size=3, stride=2, padding=1) + F.avg_pool2d(out, kernel_size=3, stride=2, padding=1)
+            elif output_size == 1:
+                out = branch_outputs[0] + F.avg_pool2d(branch_outputs[1], kernel_size=3, stride=2, padding=1)
+            else:
+                print("Error: Invalid output_size parameter in StriderBlock forward function")
+                exit()
+
+        return out
 
 
 

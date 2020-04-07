@@ -344,21 +344,27 @@ _C.MODEL.STRIDER.BODY_CHANNELS = [
         [512, 256, 1024], [1024, 256, 1024], [1024, 256, 1024], [1024, 256, 1024], [1024, 256, 1024], [1024, 256, 1024],
         [1024, 512, 2048], [2048, 512, 2048], [2048, 512, 2048],
 ]
-# Define where to sprinkle in regular bottlenecks among the StriderBlocks.
-# Length of this list must match STRIDER.BODY_CHANNELS.
-# Individual elements must be 2 element lists of [stride, dilation].
-#_C.MODEL.STRIDER.REG_BOTTLENECKS = [[1, 1], [1, 1], [1, 1],[2, 1], [1, 1], [1, 1], [1, 1],[2, 1], [1, 1], [1, 1], [1, 1], [1, 1], [1, 1],[2, 1], [1, 1], [1, 1]]
-#_C.MODEL.STRIDER.REG_BOTTLENECKS = [[1, 1], [], [],[], [], [], [],[], [], [], [], [], [],[], [], []]
 
 # Specify what kind of blocks to use, and block configs. 
 # Note: [0, [2, 1]] means: 0=reg bottleneck, [2, 1]=stride=2,dilation=1
 #       [1, [2, 1, 0.5]] means: 1=striderblock, [2, 1, 0.5]=strides to use (3 branches here)
 _C.MODEL.STRIDER.BODY_CONFIG = [[0, [1, 1]], [0, [1, 1]], [0, [1, 1]], [0, [2, 1]], [0, [1, 1]], [0, [1, 1]], [0, [1, 1]], [0, [2, 1]], [0, [1, 1]], [0, [1, 1]], [0, [1, 1]], [0, [1, 1]], [0, [1, 1]], [0, [2, 1]], [0, [1, 1]], [0, [1, 1]]]
 
-# Specifies the StriderBlock feature index that we want to fuse into. For example,
-# a FUSEINTO of 2 means that we want to fuse into the largest (2x up) feature map.
-# Want to change this to adaptive in future.
-_C.MODEL.STRIDER.STRIDERBLOCK_FUSEINTO_INDEXES = [
+# Specify what strides to consider in the StriderBlocks
+# 0: [2, 1, 0.5]
+# 1: [2, 1]
+# 2: [2, 0.5]
+# 3: [1, 0.5]
+_C.MODEL.STRIDER.STRIDE_OPTION = 0
+
+# Specifies the StriderBlock branch that we want to fuse into.
+# Note that this is NOT an index of the active striderblock.
+# If we are using two-branch striderblocks, we still refer to a 
+# fuseinto of 0.5 with the index 2.
+# 0: 2x downsample
+# 1: 1x keep
+# 2: 2x upsample
+_C.MODEL.STRIDER.OUTPUT_SIZES = [
         1, 1, 1,
         0, 1, 1, 1,
         0, 1, 1, 1, 1, 1,
@@ -373,6 +379,7 @@ _C.MODEL.STRIDER.RETURN_FEATURES = [
 ]
 _C.MODEL.STRIDER.OUT_CHANNELS = 2048
 _C.MODEL.STRIDER.FPN_OUT_CHANNELS = 256
+_C.MODEL.STRIDER.RANDOM_DILATIONS = False
 
 
 # ---------------------------------------------------------------------------- #

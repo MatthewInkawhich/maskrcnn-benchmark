@@ -10,7 +10,7 @@ MODEL:
     OUT_CHANNELS: 2048
     FPN_OUT_CHANNELS: 256
     BODY_CONFIG: [[0, [1, 1]], [0, [1, 1]], [0, [1, 1]], [1], [1], [1], [1], [1], [1], [1], [1], [1], [1], [1], [1], [1]]
-    STRIDE_OPTION: 0
+    STRIDE_OPTION: 3
     OUTPUT_SIZES: [1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1]
     RETURN_FEATURES: [False, False, True, False, False, False, True, False, False, False, False, False, True, False, False, True]
   RPN:
@@ -39,13 +39,13 @@ MODEL:
     STEM_FUNC: "StemWithGN"
     TRANS_FUNC: "BottleneckWithGN"
 DATASETS:
-  TRAIN: ("coco_2017_val",)
+  TRAIN: ("coco_2017_train",)
   TEST: ("coco_2017_val",)
 DATALOADER:
   SIZE_DIVISIBILITY: 32
 SOLVER:
-  IMS_PER_BATCH: 2  # 4 GPUs * 2 ims/GPU
-  BASE_LR: 0.0025
+  IMS_PER_BATCH: 8  # 4 GPUs * 2 ims/GPU
+  BASE_LR: 0.01
   WEIGHT_DECAY: 0.0001
   STEPS: (120000, 160000)
   MAX_ITER: 180000
@@ -54,4 +54,4 @@ TEST:
   IMS_PER_BATCH: 8
   DETECTIONS_PER_IMG: 100
 
-OUTPUT_DIR: "./out/coco/strider/faster_R50_strider_play"
+OUTPUT_DIR: "./out/coco/strider/faster_R50_strider_so3"
