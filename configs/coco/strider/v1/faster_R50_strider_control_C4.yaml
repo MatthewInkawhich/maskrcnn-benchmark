@@ -1,0 +1,46 @@
+MODEL:
+  META_ARCHITECTURE: "GeneralizedRCNN"
+  BACKBONE:
+    CONV_BODY: "STRIDER-C4"
+  STRIDER:
+    STEM_CONFIG: [[7,2,3,1], [3,2,1,1]]
+    STEM_CHANNELS: [64, 64]
+    STEM_OUT_CHANNELS: 64
+    BODY_CHANNELS: [[64, 64, 256], [256, 64, 256], [256, 64, 256], [256, 128, 512], [512, 128, 512], [512, 128, 512], [512, 128, 512],[512, 256, 1024], [1024, 256, 1024], [1024, 256, 1024], [1024, 256, 1024], [1024, 256, 1024], [1024, 256, 1024]]
+    OUT_CHANNELS: 1024
+    BODY_CONFIG: [[0, [1, 1]], [0, [1, 1]], [0, [1, 1]], [0, [2, 1]], [0, [1, 1]], [0, [1, 1]], [0, [1, 1]], [0, [2, 1]], [0, [1, 1]], [0, [1, 1]], [0, [1, 1]], [0, [1, 1]], [0, [1, 1]], [0, [2, 1]], [0, [1, 1]], [0, [1, 1]]]
+    RETURN_FEATURES: [False, False, False, False, False, False, False, False, False, False, False, False, True]
+
+  RPN:
+    USE_FPN: False
+    ANCHOR_SIZES: (32, 64, 128, 256, 512)
+    ANCHOR_STRIDE: (16,)
+    ASPECT_RATIOS: (0.5, 1.0, 2.0)
+  ROI_HEADS:
+    USE_FPN: False
+    DETECTIONS_PER_IMG: 100
+  ROI_BOX_HEAD:
+    POOLER_RESOLUTION: 14
+    POOLER_SCALES: (0.0625,)
+    FEATURE_EXTRACTOR: "ResNet50Conv5ROIFeatureExtractor"
+    PREDICTOR: "FastRCNNPredictor"
+    NUM_CLASSES: 81
+  RESNETS:
+    STEM_FUNC: "StemWithGN"
+    TRANS_FUNC: "BottleneckWithGN"
+    
+DATASETS:
+  TRAIN: ("coco_2017_train",)
+  TEST: ("coco_2017_val",)
+SOLVER:
+  IMS_PER_BATCH: 8  # 4 GPUs * 2 ims/GPU
+  BASE_LR: 0.01
+  WEIGHT_DECAY: 0.0001
+  STEPS: (120000, 160000)
+  MAX_ITER: 180000
+  CHECKPOINT_PERIOD: 10000
+TEST:
+  IMS_PER_BATCH: 8
+  DETECTIONS_PER_IMG: 100
+
+OUTPUT_DIR: "./out/coco/strider/faster_R50_strider_control_C4"

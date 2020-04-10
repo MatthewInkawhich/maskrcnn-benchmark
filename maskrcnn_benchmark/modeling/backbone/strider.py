@@ -44,13 +44,21 @@ class Strider(nn.Module):
         """
         super(Strider, self).__init__()
         # Assert correct config format
-        assert (len(cfg.MODEL.STRIDER.STEM_CONFIG) == len(cfg.MODEL.STRIDER.STEM_CHANNELS)), "Stem config must equal stem channels"
         assert (len(cfg.MODEL.STRIDER.BODY_CHANNELS) == len(cfg.MODEL.STRIDER.BODY_CONFIG)), "Body channels config must equal body config"
         assert (len(cfg.MODEL.STRIDER.BODY_CHANNELS) == len(cfg.MODEL.STRIDER.OUTPUT_SIZES)), "Body channels config must equal output_sizes"
         assert (len(cfg.MODEL.STRIDER.BODY_CHANNELS) == len(cfg.MODEL.STRIDER.RETURN_FEATURES)), "Body channels config must equal return features"
 
+        # Set norm func
+        if cfg.MODEL.STRIDER.USE_GN:
+            self.norm_func = group_norm
+        else:
+            self.norm_func = FrozenBatchNorm2d
+
         # Construct Stem
-        self.stem = Stem(cfg.MODEL.STRIDER.STEM_CONFIG, cfg.MODEL.STRIDER.STEM_CHANNELS)
+        if cfg.MODEL.STRIDER.STEM_CONFIG == "BASE":
+            self.stem = BaseStem(cfg.MODEL.STRIDER.STEM_CHANNELS[0], self.norm_func)
+        else:
+            self.stem = Stem(cfg.MODEL.STRIDER.STEM_CONFIG, cfg.MODEL.STRIDER.STEM_CHANNELS, self.norm_func)
 
         # Construct Blocks
         self.block_names = []
@@ -77,6 +85,7 @@ class Strider(nn.Module):
                             out_channels=out_channels,
                             stride=stride,
                             dilation=dilation,
+                            norm_func=self.norm_func,
                         )
             
             # Else, build a StriderBlock
@@ -86,6 +95,7 @@ class Strider(nn.Module):
                             bottleneck_channels=bottleneck_channels,
                             out_channels=out_channels,
                             stride_option=stride_option,
+                            norm_func=self.norm_func,
                             random_dilations=random_dilations,
                         )
 
@@ -131,7 +141,7 @@ class Stem(nn.Module):
     Stem module
     Use group norm
     """
-    def __init__(self, stem_config, stem_channels):
+    def __init__(self, stem_config, stem_channels, norm_func):
         super(Stem, self).__init__()
 
         # Initialize layers
@@ -150,7 +160,7 @@ class Stem(nn.Module):
             layers.append(conv)
 
             # Initialize norm
-            layers.append(group_norm(stem_channels[i]))
+            layers.append(norm_func(stem_channels[i]))
             # Initialize nonlinearity
             layers.append(nn.ReLU(inplace=True))
             # Update in_channels
@@ -163,6 +173,25 @@ class Stem(nn.Module):
     def forward(self, x):
         return self.layers(x)
 
+
+
+class BaseStem(nn.Module):
+    def __init__(self, out_channels, norm_func):
+        super(BaseStem, self).__init__()
+        # Define conv layer
+        self.conv1 = Conv2d(3, out_channels, kernel_size=7, stride=2, padding=3, bias=False)
+        self.bn1 = norm_func(out_channels)
+
+        # Initialize conv
+        for l in [self.conv1,]:
+            nn.init.kaiming_uniform_(l.weight, a=1)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = F.relu_(x)
+        x = F.max_pool2d(x, kernel_size=3, stride=2, padding=1)
+        return x
 
 
 
@@ -185,17 +214,19 @@ class StriderBlock(nn.Module):
         self.random_dilations = random_dilations
 
         ### Residual layer
-        self.residual = nn.Sequential(
-            Conv2d(
-                in_channels, out_channels,
-                kernel_size=1, stride=1, bias=False
-            ),
-            norm_func(out_channels),
-        )
-        for modules in [self.residual,]:
-            for l in modules.modules():
-                if isinstance(l, Conv2d):
-                    nn.init.kaiming_uniform_(l.weight, a=1)
+        self.residual = None
+        if in_channels != out_channels:
+            self.residual = nn.Sequential(
+                Conv2d(
+                    in_channels, out_channels,
+                    kernel_size=1, stride=1, bias=False
+                ),
+                norm_func(out_channels),
+            )
+            for modules in [self.residual,]:
+                for l in modules.modules():
+                    if isinstance(l, Conv2d):
+                        nn.init.kaiming_uniform_(l.weight, a=1)
 
         ### Conv1
         self.conv1 = Conv2d(
@@ -238,7 +269,8 @@ class StriderBlock(nn.Module):
         identity = x
 
         # Forward thru residual conv
-        residual_out = self.residual(identity)
+        if self.residual is not None:
+            identity = self.residual(identity)
 
         # Forward thru conv1
         out = self.conv1(x)
@@ -264,7 +296,7 @@ class StriderBlock(nn.Module):
             out = self.conv3(out)
             out = self.bn3(out)
             # Add residual
-            out += F.avg_pool2d(residual_out, kernel_size=3, stride=2, padding=1)
+            out += F.avg_pool2d(identity, kernel_size=3, stride=2, padding=1)
             out = F.relu_(out)
             branch_outputs.append(out)
 
@@ -278,7 +310,7 @@ class StriderBlock(nn.Module):
             out = self.conv3(out)
             out = self.bn3(out)
             # Add residual
-            out += residual_out
+            out += identity
             out = F.relu_(out)
             branch_outputs.append(out)
 
@@ -294,7 +326,7 @@ class StriderBlock(nn.Module):
             out = self.conv3(out)
             out = self.bn3(out)
             # Add residual
-            out += F.interpolate(residual_out, size=out.shape[-2:], mode='bilinear', align_corners=False)
+            out += F.interpolate(identity, size=out.shape[-2:], mode='bilinear', align_corners=False)
             out = F.relu_(out)
             branch_outputs.append(out)
 
@@ -306,22 +338,22 @@ class StriderBlock(nn.Module):
         if self.stride_option == 0:
             if output_size == 0:
                 out = branch_outputs[1] + F.avg_pool2d(branch_outputs[2], kernel_size=3, stride=2, padding=1)
-                out = branch_outputs[0] + F.avg_pool2d(out, kernel_size=3, stride=2, padding=1)
+                out = (branch_outputs[0] + F.avg_pool2d(out, kernel_size=3, stride=2, padding=1)) / 3
             elif output_size == 1:
                 out = branch_outputs[1] + F.interpolate(branch_outputs[0], size=branch_outputs[1].shape[-2:], mode='bilinear', align_corners=False)
-                out = out + F.avg_pool2d(branch_outputs[2], kernel_size=3, stride=2, padding=1)
+                out = (out + F.avg_pool2d(branch_outputs[2], kernel_size=3, stride=2, padding=1)) / 3
             elif output_size == 2:
                 out = branch_outputs[1] + F.interpolate(branch_outputs[0], size=branch_outputs[1].shape[-2:], mode='bilinear', align_corners=False)
-                out = branch_outputs[2] + F.interpolate(out, size=branch_outputs[2].shape[-2:], mode='bilinear', align_corners=False)
+                out = (branch_outputs[2] + F.interpolate(out, size=branch_outputs[2].shape[-2:], mode='bilinear', align_corners=False)) / 3
             else:
                 print("Error: Invalid output_size parameter in StriderBlock forward function")
                 exit()
 
         if self.stride_option == 1:
             if output_size == 0:
-                out = branch_outputs[0] + F.avg_pool2d(branch_outputs[1], kernel_size=3, stride=2, padding=1)
+                out = (branch_outputs[0] + F.avg_pool2d(branch_outputs[1], kernel_size=3, stride=2, padding=1)) / 2
             elif output_size == 1:
-                out = branch_outputs[1] + F.interpolate(branch_outputs[0], size=branch_outputs[1].shape[-2:], mode='bilinear', align_corners=False)
+                out = (branch_outputs[1] + F.interpolate(branch_outputs[0], size=branch_outputs[1].shape[-2:], mode='bilinear', align_corners=False)) / 2
             else:
                 print("Error: Invalid output_size parameter in StriderBlock forward function")
                 exit()
@@ -329,10 +361,10 @@ class StriderBlock(nn.Module):
         if self.stride_option == 2:
             if output_size == 0:
                 out = F.avg_pool2d(branch_outputs[1], kernel_size=3, stride=2, padding=1)
-                out = branch_outputs[0] + F.avg_pool2d(out, kernel_size=3, stride=2, padding=1)
+                out = (branch_outputs[0] + F.avg_pool2d(out, kernel_size=3, stride=2, padding=1)) / 2
             elif output_size == 1:
                 out = F.avg_pool2d(branch_outputs[1], kernel_size=3, stride=2, padding=1)
-                out = out + F.interpolate(branch_outputs[0], size=out.shape[-2:], mode='bilinear', align_corners=False)
+                out = (out + F.interpolate(branch_outputs[0], size=out.shape[-2:], mode='bilinear', align_corners=False)) / 2
             else:
                 print("Error: Invalid output_size parameter in StriderBlock forward function")
                 exit()
@@ -340,9 +372,9 @@ class StriderBlock(nn.Module):
         if self.stride_option == 3:
             if output_size == 0:
                 out = F.avg_pool2d(branch_outputs[1], kernel_size=3, stride=2, padding=1)
-                out = F.avg_pool2d(branch_outputs[0], kernel_size=3, stride=2, padding=1) + F.avg_pool2d(out, kernel_size=3, stride=2, padding=1)
+                out = (F.avg_pool2d(branch_outputs[0], kernel_size=3, stride=2, padding=1) + F.avg_pool2d(out, kernel_size=3, stride=2, padding=1)) / 2
             elif output_size == 1:
-                out = branch_outputs[0] + F.avg_pool2d(branch_outputs[1], kernel_size=3, stride=2, padding=1)
+                out = (branch_outputs[0] + F.avg_pool2d(branch_outputs[1], kernel_size=3, stride=2, padding=1)) / 2
             else:
                 print("Error: Invalid output_size parameter in StriderBlock forward function")
                 exit()
@@ -371,7 +403,7 @@ class Bottleneck(nn.Module):
 
         ### Downsample layer (on residual)
         self.downsample = None
-        if in_channels != out_channels or stride != 1:
+        if in_channels != out_channels:
             down_stride = stride
             self.downsample = nn.Sequential(
                 Conv2d(

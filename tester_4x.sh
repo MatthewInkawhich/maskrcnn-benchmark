@@ -30,14 +30,14 @@
 #echo "3-4-20"
 
 
-#python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/coco/nopretrain/faster_R50_C4_vanilla_np.yaml" --ckpt "out/coco/nopretrain/faster_R50_C4_vanilla_np/model_final.pth" --more-sizes
-#echo "C4 nopretrain"
+python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/coco/nopretrain/faster_R50_C4_vanilla_np.yaml" --ckpt "out/coco/nopretrain/faster_R50_C4_vanilla_np/model_final.pth" --more-sizes
+echo "C4 nopretrain"
 #python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/coco/nopretrain/faster_R50_fpn_np.yaml" --ckpt "out/coco/nopretrain/faster_R50_fpn_np/model_final.pth" --more-sizes
 #echo "FPN nopretrain"
-python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/coco/nopretrain/faster_R50_C4_dilation2_np.yaml" --ckpt "out/coco/nopretrain/faster_R50_C4_dilation2_np/model_final.pth" --more-sizes
-echo "DILATION2"
-python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/coco/nopretrain/faster_R50_C4_dilation3_np.yaml" --ckpt "out/coco/nopretrain/faster_R50_C4_dilation3_np/model_final.pth" --more-sizes
-echo "DILATION3"
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/coco/nopretrain/faster_R50_C4_dilation2_np.yaml" --ckpt "out/coco/nopretrain/faster_R50_C4_dilation2_np/model_final.pth" --more-sizes
+#echo "DILATION2"
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/coco/nopretrain/faster_R50_C4_dilation3_np.yaml" --ckpt "out/coco/nopretrain/faster_R50_C4_dilation3_np/model_final.pth" --more-sizes
+#echo "DILATION3"
 #python -m torch.distributed.launch --nproc_per_node=4 ./tools/test_net.py --config-file "configs/coco/nopretrain/faster_R50_C4_dilation4_np.yaml" --ckpt "out/coco/nopretrain/faster_R50_C4_dilation4/model_final.pth" --more-sizes
 #echo "DILATION4"
 

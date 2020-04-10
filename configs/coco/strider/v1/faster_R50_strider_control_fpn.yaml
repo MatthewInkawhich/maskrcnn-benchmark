@@ -3,17 +3,14 @@ MODEL:
   BACKBONE:
     CONV_BODY: "STRIDER-FPN"
   STRIDER:
-    USE_GN: True
-    STEM_CONFIG: "BASE"
-    STEM_CHANNELS: [64]
+    STEM_CONFIG: [[7,2,3,1], [3,2,1,1]]
+    STEM_CHANNELS: [64, 64]
+    STEM_OUT_CHANNELS: 64
     BODY_CHANNELS: [[64, 64, 256], [256, 64, 256], [256, 64, 256], [256, 128, 512], [512, 128, 512], [512, 128, 512], [512, 128, 512],[512, 256, 1024], [1024, 256, 1024], [1024, 256, 1024], [1024, 256, 1024], [1024, 256, 1024], [1024, 256, 1024], [1024, 512, 2048], [2048, 512, 2048], [2048, 512, 2048]]
     OUT_CHANNELS: 2048
     FPN_OUT_CHANNELS: 256
-    BODY_CONFIG: [[0, [1, 1]], [0, [1, 1]], [0, [1, 1]], [1], [1], [1], [1], [1], [1], [1], [1], [1], [1], [1], [1], [1]]
-    STRIDE_OPTION: 0
-    OUTPUT_SIZES: [1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1]
+    BODY_CONFIG: [[0, [1, 1]], [0, [1, 1]], [0, [1, 1]], [0, [2, 1]], [0, [1, 1]], [0, [1, 1]], [0, [1, 1]], [0, [2, 1]], [0, [1, 1]], [0, [1, 1]], [0, [1, 1]], [0, [1, 1]], [0, [1, 1]], [0, [2, 1]], [0, [1, 1]], [0, [1, 1]]]
     RETURN_FEATURES: [False, False, True, False, False, False, True, False, False, False, False, False, True, False, False, True]
-    RANDOM_DILATIONS: False
   RPN:
     USE_FPN: True
     ANCHOR_SIZES: (32, 64, 128, 256, 512)
@@ -36,6 +33,9 @@ MODEL:
     FEATURE_EXTRACTOR: "FPN2MLPFeatureExtractor"
     PREDICTOR: "FPNPredictor"
     NUM_CLASSES: 81
+  RESNETS:
+    STEM_FUNC: "StemWithGN"
+    TRANS_FUNC: "BottleneckWithGN"
 DATASETS:
   TRAIN: ("coco_2017_train",)
   TEST: ("coco_2017_val",)
@@ -52,4 +52,4 @@ TEST:
   IMS_PER_BATCH: 8
   DETECTIONS_PER_IMG: 100
 
-OUTPUT_DIR: "./out/coco/strider/faster_R50_strider_vanilla"
+OUTPUT_DIR: "./out/coco/strider/faster_R50_strider_control_fpn"
