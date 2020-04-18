@@ -107,8 +107,41 @@ def prep_primed_state_dict(loaded_state_dict, branch_counts):
     return new_state_dict
 
 
+# Use this to format the pretrained resnet state_dict for the Strider backbone
+def prep_for_strider(loaded_state_dict, strider_body_config):
+    # Iterate thru keys, collecting into layer_prefixes
+    layer_prefixes = []
+    for k, _ in loaded_state_dict.items():
+        if 'layer' in k:
+            k_arr = k.split('.')
+            prefix = k_arr[0] + '.' + k_arr[1]
+            if prefix not in layer_prefixes:
+                layer_prefixes.append(prefix)
 
-def load_state_dict(model, loaded_state_dict, dont_load=[], branch_counts=[], primer=False):
+    # Create layer --> block map
+    layer_to_block_map = {}
+    block_index = 0
+    for layer_prefix in layer_prefixes:
+        layer_to_block_map[layer_prefix] = "block" + str(block_index)
+        block_index += 1
+
+    # Create new_state_dict
+    new_state_dict = {}
+    for k, v in loaded_state_dict.items():
+        for layer_prefix, block_prefix in layer_to_block_map.items():
+            if layer_prefix in k:
+                k = k.replace(layer_prefix, block_prefix)
+                # Replace conv2.weight with conv2_weight if block is a StriderBlock
+                block_idx = int(block_prefix.split('block')[-1])
+                striderblock = strider_body_config[block_idx][0]
+                if striderblock == 1:
+                    k = k.replace("conv2.weight", "conv2_weight")
+                break
+        new_state_dict[k] = v 
+    return new_state_dict
+
+
+def load_state_dict(model, loaded_state_dict, dont_load=[], branch_counts=[], primer=False, strider_body_config=[]):
     # Create a record of the default model state dict so we can use strict loading later
     model_state_dict = model.state_dict()
     # if the state_dict comes from a model that was wrapped in a
@@ -123,6 +156,15 @@ def load_state_dict(model, loaded_state_dict, dont_load=[], branch_counts=[], pr
             loaded_state_dict = prep_primed_state_dict(loaded_state_dict, branch_counts)
         else:
             loaded_state_dict = prep_for_ewadaptive_model(loaded_state_dict, branch_counts)
+    
+    if strider_body_config:
+        #print("\n\nBEFORE PREPPING:")
+        #for k, v in loaded_state_dict.items():
+        #    print(k)
+        loaded_state_dict = prep_for_strider(loaded_state_dict, strider_body_config)
+        #print("\n\nAFTER PREPPING:")
+        #for k, v in loaded_state_dict.items():
+        #    print(k)
 
     align_and_update_state_dicts(model_state_dict, loaded_state_dict, dont_load)
 

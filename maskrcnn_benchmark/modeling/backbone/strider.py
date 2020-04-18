@@ -69,6 +69,7 @@ class Strider(nn.Module):
         return_features = cfg.MODEL.STRIDER.RETURN_FEATURES
         stride_option = cfg.MODEL.STRIDER.STRIDE_OPTION
         random_dilations = cfg.MODEL.STRIDER.RANDOM_DILATIONS
+        full_residual = cfg.MODEL.STRIDER.FULL_RESIDUAL
         for i in range(len(body_channels)):
             name = "block" + str(i)
             in_channels = body_channels[i][0]
@@ -86,6 +87,7 @@ class Strider(nn.Module):
                             stride=stride,
                             dilation=dilation,
                             norm_func=self.norm_func,
+                            full_residual=full_residual,
                         )
             
             # Else, build a StriderBlock
@@ -97,6 +99,7 @@ class Strider(nn.Module):
                             stride_option=stride_option,
                             norm_func=self.norm_func,
                             random_dilations=random_dilations,
+                            full_residual=full_residual,
                         )
 
             self.add_module(name, block)
@@ -206,7 +209,8 @@ class StriderBlock(nn.Module):
         out_channels,
         stride_option,
         norm_func=group_norm,
-        random_dilations=False
+        random_dilations=False,
+        full_residual=False,
     ):
         super(StriderBlock, self).__init__()
         
@@ -214,16 +218,16 @@ class StriderBlock(nn.Module):
         self.random_dilations = random_dilations
 
         ### Residual layer
-        self.residual = None
-        if in_channels != out_channels:
-            self.residual = nn.Sequential(
+        self.downsample = None
+        if in_channels != out_channels or full_residual:
+            self.downsample = nn.Sequential(
                 Conv2d(
                     in_channels, out_channels,
                     kernel_size=1, stride=1, bias=False
                 ),
                 norm_func(out_channels),
             )
-            for modules in [self.residual,]:
+            for modules in [self.downsample,]:
                 for l in modules.modules():
                     if isinstance(l, Conv2d):
                         nn.init.kaiming_uniform_(l.weight, a=1)
@@ -269,8 +273,8 @@ class StriderBlock(nn.Module):
         identity = x
 
         # Forward thru residual conv
-        if self.residual is not None:
-            identity = self.residual(identity)
+        if self.downsample is not None:
+            identity = self.downsample(identity)
 
         # Forward thru conv1
         out = self.conv1(x)
@@ -398,12 +402,13 @@ class Bottleneck(nn.Module):
         use_downsample=False,
         num_groups=1,
         norm_func=group_norm,
+        full_residual=False,
     ):
         super(Bottleneck, self).__init__()
 
         ### Downsample layer (on residual)
         self.downsample = None
-        if in_channels != out_channels:
+        if in_channels != out_channels or full_residual:
             down_stride = stride
             self.downsample = nn.Sequential(
                 Conv2d(

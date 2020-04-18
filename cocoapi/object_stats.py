@@ -50,7 +50,7 @@ args = parser.parse_args()
 
 
 # Initialize Histogram object
-splits = list(range(5, 305, 5))
+splits = list(range(5, 505, 5))
 hist = Histogram(splits)
 print(hist.get())
 

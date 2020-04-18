@@ -334,7 +334,7 @@ _C.MODEL.DDPP.IRPN_CONFIG = [[[32], [0.5, 1.0, 2.0], [4], 0], [[32, 64], [0.5, 1
 # Strider Options
 # ---------------------------------------------------------------------------- #
 _C.MODEL.STRIDER = CN()
-_C.MODEL.STRIDER.USE_GN = True
+_C.MODEL.STRIDER.USE_GN = False
 # Each element is a conv in the stem module [kernel, stride, padding]
 #_C.MODEL.STRIDER.STEM_CONFIG = [[7,2,3], [3,2,1]]
 #_C.MODEL.STRIDER.STEM_CHANNELS = [64, 64]
@@ -382,6 +382,7 @@ _C.MODEL.STRIDER.RETURN_FEATURES = [
 _C.MODEL.STRIDER.OUT_CHANNELS = 2048
 _C.MODEL.STRIDER.FPN_OUT_CHANNELS = 256
 _C.MODEL.STRIDER.RANDOM_DILATIONS = False
+_C.MODEL.STRIDER.FULL_RESIDUAL = False
 
 
 # ---------------------------------------------------------------------------- #
