@@ -50,4 +50,4 @@ TEST:
   IMS_PER_BATCH: 8
   DETECTIONS_PER_IMG: 100
 
-OUTPUT_DIR: "./out/coco/strider/faster_R50_strider_control_fpn"
+OUTPUT_DIR: "./out/coco/strider/pretrain/faster_R50_strider_control_fpn"

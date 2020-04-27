@@ -68,8 +68,9 @@ class Strider(nn.Module):
         body_config = cfg.MODEL.STRIDER.BODY_CONFIG
         return_features = cfg.MODEL.STRIDER.RETURN_FEATURES
         stride_option = cfg.MODEL.STRIDER.STRIDE_OPTION
-        random_dilations = cfg.MODEL.STRIDER.RANDOM_DILATIONS
         full_residual = cfg.MODEL.STRIDER.FULL_RESIDUAL
+        dilations = cfg.MODEL.STRIDER.DILATIONS
+        weighted_fusion = cfg.MODEL.STRIDER.WEIGHTED_FUSION
         for i in range(len(body_channels)):
             name = "block" + str(i)
             in_channels = body_channels[i][0]
@@ -97,9 +98,10 @@ class Strider(nn.Module):
                             bottleneck_channels=bottleneck_channels,
                             out_channels=out_channels,
                             stride_option=stride_option,
+                            dilations=dilations,
                             norm_func=self.norm_func,
-                            random_dilations=random_dilations,
                             full_residual=full_residual,
+                            weighted_fusion=weighted_fusion,
                         )
 
             self.add_module(name, block)
@@ -199,6 +201,36 @@ class BaseStem(nn.Module):
 
 
 ################################################################################
+### WeightedFusionModule
+################################################################################
+class WeightedFusionModule(nn.Module):
+    def __init__(self, in_channels, num_branches):
+        super(WeightedFusionModule, self).__init__()
+        self.conv = Conv2d(in_channels, num_branches, kernel_size=3, stride=1, padding=1)
+        for l in [self.conv,]:
+            torch.nn.init.normal_(l.weight, std=0.01)
+            torch.nn.init.constant_(l.bias, 0)
+
+    def forward(self, x, output_size):
+        # Forward thru conv
+        x = self.conv(x)
+        # Resize output
+        if output_size == 0:
+            x = F.avg_pool2d(x, kernel_size=3, stride=2, padding=1)
+        elif output_size == 2:
+            x = F.interpolate(x, scale_factor=2, mode='nearest')
+        # Depth-wise normalize
+        s = x.sum(dim=1, keepdim=True)
+        x = x / s
+        # Convert to a list with each element representing a channel (i.e. branch)
+        x = x.permute(1, 0, 2, 3).unsqueeze_(2)
+        out = [a for a in x]
+        return out
+        
+
+
+
+################################################################################
 ### StriderBlock
 ################################################################################
 class StriderBlock(nn.Module):
@@ -208,14 +240,20 @@ class StriderBlock(nn.Module):
         bottleneck_channels,
         out_channels,
         stride_option,
+        dilations,
         norm_func=group_norm,
-        random_dilations=False,
         full_residual=False,
+        weighted_fusion=False,
     ):
         super(StriderBlock, self).__init__()
         
         self.stride_option = stride_option
-        self.random_dilations = random_dilations
+        self.dilations = dilations
+        self.weighted_fusion = weighted_fusion
+
+        ### Initialize Weighted Fusion Module if necessary
+        if self.weighted_fusion:
+            self.wfm = WeightedFusionModule(in_channels, num_branches=3)
 
         ### Residual layer
         self.downsample = None
@@ -272,6 +310,10 @@ class StriderBlock(nn.Module):
         # Store copy of input feature
         identity = x
 
+        # Forward thru WeightedFusionModule if necessary
+        if self.weighted_fusion:
+            fusion_weights = self.wfm(identity, output_size)
+
         # Forward thru residual conv
         if self.downsample is not None:
             identity = self.downsample(identity)
@@ -284,14 +326,9 @@ class StriderBlock(nn.Module):
         # Forward thru all branches
         branch_outputs = []
 
-        # Generate random dilation if necessary (apply this dilation to all branches)
-        if self.random_dilations:
-            dilation = random.randint(1, 3)
-        else:
-            dilation = 1
-
         # 2x DOWN branch
         if self.stride_option in [0, 1, 2]:
+            dilation = self.dilations[0]
             # Conv2
             out = F.conv2d(conv1_out, self.conv2_weight, stride=2, padding=dilation, dilation=dilation)
             out = self.bn2(out)
@@ -306,6 +343,7 @@ class StriderBlock(nn.Module):
 
         # 1x SAME branch
         if self.stride_option in [0, 1, 3]:
+            dilation = self.dilations[1]
             # Conv2
             out = F.conv2d(conv1_out, self.conv2_weight, stride=1, padding=dilation, dilation=dilation)
             out = self.bn2(out)
@@ -320,6 +358,7 @@ class StriderBlock(nn.Module):
 
         # 2x UP branch
         if self.stride_option in [0, 2, 3]:
+            dilation = self.dilations[2]
             # (T)Conv2
             # Note: We want the Transposed conv with stride=2 to act like a conv with stride=1/2, 
             #       so we have to permute the in/out channels and flip the kernels to match the implementation.
@@ -334,56 +373,79 @@ class StriderBlock(nn.Module):
             out = F.relu_(out)
             branch_outputs.append(out)
 
-        #print("\n")
-        #for i in range(len(branch_outputs)):
-        #    print(i, branch_outputs[i].shape)
+        
+        # Resize branch outputs
+        if output_size == 0:
+            branch_outputs[1] = F.avg_pool2d(branch_outputs[1], kernel_size=3, stride=2, padding=1)
+            branch_outputs[2] = F.avg_pool2d(F.avg_pool2d(branch_outputs[2], kernel_size=3, stride=2, padding=1), kernel_size=3, stride=2, padding=1)
+        elif output_size == 1:
+            branch_outputs[0] = F.interpolate(branch_outputs[0], size=branch_outputs[1].shape[-2:], mode='bilinear', align_corners=False)
+            branch_outputs[2] = F.avg_pool2d(branch_outputs[2], kernel_size=3, stride=2, padding=1)
+        elif output_size == 2:
+            branch_outputs[0] = F.interpolate(branch_outputs[0], size=branch_outputs[2].shape[-2:], mode='bilinear', align_corners=False)
+            branch_outputs[1] = F.interpolate(branch_outputs[1], size=branch_outputs[2].shape[-2:], mode='bilinear', align_corners=False)
+        else:
+            print("Error: Invalid output_size parameter in StriderBlock forward function")
+            exit()
 
-        # Fuse features
-        if self.stride_option == 0:
-            if output_size == 0:
-                out = branch_outputs[1] + F.avg_pool2d(branch_outputs[2], kernel_size=3, stride=2, padding=1)
-                out = (branch_outputs[0] + F.avg_pool2d(out, kernel_size=3, stride=2, padding=1)) / 3
-            elif output_size == 1:
-                out = branch_outputs[1] + F.interpolate(branch_outputs[0], size=branch_outputs[1].shape[-2:], mode='bilinear', align_corners=False)
-                out = (out + F.avg_pool2d(branch_outputs[2], kernel_size=3, stride=2, padding=1)) / 3
-            elif output_size == 2:
-                out = branch_outputs[1] + F.interpolate(branch_outputs[0], size=branch_outputs[1].shape[-2:], mode='bilinear', align_corners=False)
-                out = (branch_outputs[2] + F.interpolate(out, size=branch_outputs[2].shape[-2:], mode='bilinear', align_corners=False)) / 3
-            else:
-                print("Error: Invalid output_size parameter in StriderBlock forward function")
-                exit()
+        # Scale each branch output by weights (optional)
+        if self.weighted_fusion:
+            branch_outputs[0] = branch_outputs[0] * fusion_weights[0]
+            branch_outputs[1] = branch_outputs[1] * fusion_weights[1]
+            branch_outputs[2] = branch_outputs[2] * fusion_weights[2]
 
-        if self.stride_option == 1:
-            if output_size == 0:
-                out = (branch_outputs[0] + F.avg_pool2d(branch_outputs[1], kernel_size=3, stride=2, padding=1)) / 2
-            elif output_size == 1:
-                out = (branch_outputs[1] + F.interpolate(branch_outputs[0], size=branch_outputs[1].shape[-2:], mode='bilinear', align_corners=False)) / 2
-            else:
-                print("Error: Invalid output_size parameter in StriderBlock forward function")
-                exit()
-
-        if self.stride_option == 2:
-            if output_size == 0:
-                out = F.avg_pool2d(branch_outputs[1], kernel_size=3, stride=2, padding=1)
-                out = (branch_outputs[0] + F.avg_pool2d(out, kernel_size=3, stride=2, padding=1)) / 2
-            elif output_size == 1:
-                out = F.avg_pool2d(branch_outputs[1], kernel_size=3, stride=2, padding=1)
-                out = (out + F.interpolate(branch_outputs[0], size=out.shape[-2:], mode='bilinear', align_corners=False)) / 2
-            else:
-                print("Error: Invalid output_size parameter in StriderBlock forward function")
-                exit()
-
-        if self.stride_option == 3:
-            if output_size == 0:
-                out = F.avg_pool2d(branch_outputs[1], kernel_size=3, stride=2, padding=1)
-                out = (F.avg_pool2d(branch_outputs[0], kernel_size=3, stride=2, padding=1) + F.avg_pool2d(out, kernel_size=3, stride=2, padding=1)) / 2
-            elif output_size == 1:
-                out = (branch_outputs[0] + F.avg_pool2d(branch_outputs[1], kernel_size=3, stride=2, padding=1)) / 2
-            else:
-                print("Error: Invalid output_size parameter in StriderBlock forward function")
-                exit()
+        # Fuse branch outputs
+        out = branch_outputs[0] + branch_outputs[1] + branch_outputs[2]
+        out = out / 3
 
         return out
+
+
+
+#        if self.stride_option == 0:
+#            if output_size == 0:
+#                out = branch_outputs[1] + F.avg_pool2d(branch_outputs[2], kernel_size=3, stride=2, padding=1)
+#                out = (branch_outputs[0] + F.avg_pool2d(out, kernel_size=3, stride=2, padding=1)) / 3
+#            elif output_size == 1:
+#                out = branch_outputs[1] + F.interpolate(branch_outputs[0], size=branch_outputs[1].shape[-2:], mode='bilinear', align_corners=False)
+#                out = (out + F.avg_pool2d(branch_outputs[2], kernel_size=3, stride=2, padding=1)) / 3
+#            elif output_size == 2:
+#                out = branch_outputs[1] + F.interpolate(branch_outputs[0], size=branch_outputs[1].shape[-2:], mode='bilinear', align_corners=False)
+#                out = (branch_outputs[2] + F.interpolate(out, size=branch_outputs[2].shape[-2:], mode='bilinear', align_corners=False)) / 3
+#            else:
+#                print("Error: Invalid output_size parameter in StriderBlock forward function")
+#                exit()
+#        elif self.stride_option == 1:
+#            if output_size == 0:
+#                out = (branch_outputs[0] + F.avg_pool2d(branch_outputs[1], kernel_size=3, stride=2, padding=1)) / 2
+#            elif output_size == 1:
+#                out = (branch_outputs[1] + F.interpolate(branch_outputs[0], size=branch_outputs[1].shape[-2:], mode='bilinear', align_corners=False)) / 2
+#            else:
+#                print("Error: Invalid output_size parameter in StriderBlock forward function")
+#                exit()
+#
+#        elif self.stride_option == 2:
+#            if output_size == 0:
+#                out = F.avg_pool2d(branch_outputs[1], kernel_size=3, stride=2, padding=1)
+#                out = (branch_outputs[0] + F.avg_pool2d(out, kernel_size=3, stride=2, padding=1)) / 2
+#            elif output_size == 1:
+#                out = F.avg_pool2d(branch_outputs[1], kernel_size=3, stride=2, padding=1)
+#                out = (out + F.interpolate(branch_outputs[0], size=out.shape[-2:], mode='bilinear', align_corners=False)) / 2
+#            else:
+#                print("Error: Invalid output_size parameter in StriderBlock forward function")
+#                exit()
+#
+#        elif self.stride_option == 3:
+#            if output_size == 0:
+#                out = F.avg_pool2d(branch_outputs[1], kernel_size=3, stride=2, padding=1)
+#                out = (F.avg_pool2d(branch_outputs[0], kernel_size=3, stride=2, padding=1) + F.avg_pool2d(out, kernel_size=3, stride=2, padding=1)) / 2
+#            elif output_size == 1:
+#                out = (branch_outputs[0] + F.avg_pool2d(branch_outputs[1], kernel_size=3, stride=2, padding=1)) / 2
+#            else:
+#                print("Error: Invalid output_size parameter in StriderBlock forward function")
+#                exit()
+
+#        return out
 
 
 

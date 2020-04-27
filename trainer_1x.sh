@@ -53,4 +53,9 @@
 #python ./tools/train_net.py --config-file "configs/coco/strider/faster_R50_strider_so2.yaml" --empty-cache
 #python ./tools/train_net.py --config-file "configs/coco/strider/faster_R50_strider_so3.yaml" --empty-cache
 #python ./tools/train_net.py --config-file "configs/coco/strider/faster_R50_strider_rd.yaml" --empty-cache
-python ./tools/train_net.py --config-file "configs/coco/strider/faster_R50_strider_play.yaml" --empty-cache
+#python ./tools/train_net.py --config-file "configs/coco/strider/faster_R50_strider_play.yaml" --empty-cache
+# pretrain
+#python ./tools/train_net.py --config-file "configs/coco/strider/pretrain/faster_R50_strider_vanilla.yaml" --empty-cache
+#python ./tools/train_net.py --config-file "configs/coco/strider/pretrain/faster_R50_strider_vanilla_A.yaml" --empty-cache
+#python ./tools/train_net.py --config-file "configs/coco/strider/pretrain/faster_R50_strider_vanilla_B.yaml" --empty-cache
+python ./tools/train_net.py --config-file "configs/coco/strider/pretrain/faster_R50_strider_vanilla_wf.yaml" --empty-cache

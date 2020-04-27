@@ -38,13 +38,13 @@ MODEL:
     PREDICTOR: "FPNPredictor"
     NUM_CLASSES: 81
 DATASETS:
-  TRAIN: ("coco_2017_val",)
+  TRAIN: ("coco_2017_train",)
   TEST: ("coco_2017_val",)
 DATALOADER:
   SIZE_DIVISIBILITY: 32
 SOLVER:
-  IMS_PER_BATCH: 2  # 4 GPUs * 2 ims/GPU
-  BASE_LR: 0.0025
+  IMS_PER_BATCH: 8  # 4 GPUs * 2 ims/GPU
+  BASE_LR: 0.01
   WEIGHT_DECAY: 0.0001
   STEPS: (120000, 160000)
   MAX_ITER: 180000
@@ -53,4 +53,4 @@ TEST:
   IMS_PER_BATCH: 8
   DETECTIONS_PER_IMG: 100
 
-OUTPUT_DIR: "./out/coco/strider/faster_R50_strider_play"
+OUTPUT_DIR: "./out/coco/strider/pretrain/faster_R50_strider_play"
