@@ -129,5 +129,5 @@
 # pretrain
 #python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/strider/pretrain/faster_R50_strider_vanilla.yaml" --more-sizes
 #python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/strider/pretrain/faster_R50_strider_vanilla_A.yaml" --more-sizes
-python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/strider/pretrain/faster_R50_strider_vanilla_B.yaml" --more-sizes
-#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/strider/pretrain/faster_R50_strider_vanilla_wf.yaml" --more-sizes
+#python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/strider/pretrain/faster_R50_strider_vanilla_B.yaml" --more-sizes
+python -m torch.distributed.launch --nproc_per_node=4 ./tools/train_net.py --config-file "configs/coco/strider/pretrain/faster_R50_strider_vanilla_wf.yaml" --more-sizes

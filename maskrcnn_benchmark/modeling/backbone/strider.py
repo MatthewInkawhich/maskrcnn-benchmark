@@ -121,8 +121,8 @@ class Strider(nn.Module):
         x = self.stem(x)
         #print("stem:", x.shape)
         for i, block_name in enumerate(self.block_names):
+            print(i, block_name, x.shape)
             x = getattr(self, block_name)(x, self.output_sizes[i])
-            #print(i, block_name, x.shape)
             if self.return_features[block_name]:
                 #print("Adding to return list")
                 outputs.append(x)
@@ -214,6 +214,8 @@ class WeightedFusionModule(nn.Module):
     def forward(self, x, output_size):
         # Forward thru conv
         x = self.conv(x)
+        # Normalize channel values to percentages
+        x = F.softmax(x, dim=1)
         # Resize output
         if output_size == 0:
             x = F.avg_pool2d(x, kernel_size=3, stride=2, padding=1)
@@ -388,6 +390,10 @@ class StriderBlock(nn.Module):
             print("Error: Invalid output_size parameter in StriderBlock forward function")
             exit()
 
+        #print("\n\n")
+        #for fw in fusion_weights:
+        #    print(fw, fw.shape)
+
         # Scale each branch output by weights (optional)
         if self.weighted_fusion:
             branch_outputs[0] = branch_outputs[0] * fusion_weights[0]
@@ -396,7 +402,8 @@ class StriderBlock(nn.Module):
 
         # Fuse branch outputs
         out = branch_outputs[0] + branch_outputs[1] + branch_outputs[2]
-        out = out / 3
+        if not self.weighted_fusion:
+            out = out / 3
 
         return out
 
